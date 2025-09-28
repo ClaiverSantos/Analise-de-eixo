@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador de Eixos - Fadiga</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Painel de Controle -->
+        <div class="painel-controle">
+            <h3>Desenhador de Eixos</h3>
+            
+            <div class="form-group">
+                <label>Diâmetro (mm):</label>
+                <input type="number" id="diametro" value="20" min="1" step="1">
+            </div>
+            
+            <div class="form-group">
+                <label>Comprimento da Seção (mm):</label>
+                <input type="number" id="comprimento" value="50" min="1" step="1">
+            </div>
+            
+            <button id="btnAdicionarSecao">Adicionar Seção</button>
+            <button id="btnLimparEixo">Limpar Eixo</button>
+            <button id="btnDetalharEixo">Configurar Pontos</button>
+            <button id="btnCalcularReacoes" class="laranja">Calcular Reações →</button>
+        </div>
+        
+        <!-- Área de Desenho -->
+        <div class="area-desenho" id="areaDesenho">
+            <div id="eixoContainer"></div>
+            <div id="cotasContainer"></div>
+            <div id="setasContainer"></div>
+        </div>
+        
+        <!-- Painel de Descrição -->
+        <div class="painel-descricao">
+            <h3>Descrição do Eixo</h3>
+            <button id="btnObterDescricao" class="verde">Obter Descrição do Eixo</button>
+            <div id="descricaoEixo"></div>
+        </div>
+    </div>
+
+    <!-- Modal para Configurar Pontos -->
+    <div id="modalConfig" class="modal">
+        <div class="modal-content">
+            <h3>Configurar Pontos do Eixo</h3>
+            <div id="configuracoesPontos"></div>
+            <button id="btnSalvarConfig">Salvar Configurações</button>
+        </div>
+    </div>
+
+    <script src="eixo.js"></script>
+    <script src="calculos.js"></script>
+    <!-- Adicionar após calculos.js -->
+    <script src="diagrama.js"></script>
+    <script src="diagrama2.js"></script>
+</body>
+</html>
