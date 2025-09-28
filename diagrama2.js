@@ -1,5 +1,4 @@
 // diagrama2.js
-// diagrama2.js
 class DiagramaFadiga {
     constructor() {
         this.canvas = null;
@@ -7,10 +6,12 @@ class DiagramaFadiga {
         this.dados = null;
         this.margins = { top: 50, right: 50, bottom: 80, left: 80 };
         this.colors = {
-            linhaFadiga: '#e74c3c',
-            linhaTensao: '#3498db',
-            areaSegura: 'rgba(46, 204, 113, 0.2)',
-            areaInsegura: 'rgba(231, 76, 60, 0.2)',
+            linhaGoodman: '#e74c3c',
+            linhaEscoamento: '#f39c12',
+            retanguloEsforco: 'rgba(52, 152, 219, 0.6)',
+            areaSegura: 'rgba(46, 204, 113, 0.4)',
+            areaGoodman: 'rgba(231, 76, 60, 0.2)',
+            areaEscoamento: 'rgba(243, 156, 18, 0.2)',
             grid: '#ecf0f1',
             text: '#2c3e50'
         };
@@ -81,14 +82,17 @@ class DiagramaFadiga {
         // Desenhar eixos
         this.desenharEixos();
 
-        // Desenhar linha de fadiga (Se)
-        this.desenharLinhaFadiga();
+        // Desenhar área de escoamento (Sy x Sy)
+        this.desenharAreaEscoamento();
 
-        // Desenhar ponto de tensão atual
-        this.desenharPontoTensao();
+        // Desenhar linha de Goodman (Se até Sut)
+        this.desenharLinhaGoodman();
 
-        // Desenhar áreas segura/insegura
-        this.desenharAreas();
+        // Desenhar área segura (interseção)
+        this.desenharAreaSegura();
+
+        // Desenhar retângulo de esforço
+        this.desenharRetanguloEsforco();
 
         // Desenhar legenda
         this.desenharLegenda();
@@ -156,10 +160,10 @@ class DiagramaFadiga {
         ctx.fillText('Tensão Média σm (MPa)', width / 2 - 60, height - 20);
 
         // Escalas
-        const maxTensao = Math.max(
-            this.resultadosFadiga.tensaoMaxima / 1e6,
-            this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa
-        ) * 1.5;
+        const Se = this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa;
+        const Sut = this.config.Sut;
+        const Sy = this.config.Sy;
+        const maxTensao = Math.max(Se, Sut, Sy) * 1.2;
 
         // Escala eixo Y
         for (let i = 0; i <= 5; i++) {
@@ -184,9 +188,29 @@ class DiagramaFadiga {
             ctx.lineTo(x, height - margins.bottom + 5);
             ctx.stroke();
         }
+
+        // Marcas especiais
+        ctx.fillStyle = '#e74c3c';
+        ctx.font = 'bold 12px Arial';
+        
+        // Marca do Se no eixo Y
+        const ySe = height - margins.bottom - (Se * (height - margins.top - margins.bottom) / maxTensao);
+        ctx.fillText(`Se = ${Se.toFixed(0)}`, margins.left - 60, ySe + 4);
+        
+        // Marca do Sut no eixo X
+        const xSut = margins.left + (Sut * (width - margins.left - margins.right) / maxTensao);
+        ctx.fillText(`Sut = ${Sut}`, xSut - 20, height - margins.bottom + 35);
+
+        // Marca do Sy nos eixos
+        ctx.fillStyle = '#f39c12';
+        const ySy = height - margins.bottom - (Sy * (height - margins.top - margins.bottom) / maxTensao);
+        ctx.fillText(`Sy = ${Sy}`, margins.left - 60, ySy + 4);
+        
+        const xSy = margins.left + (Sy * (width - margins.left - margins.right) / maxTensao);
+        ctx.fillText(`Sy = ${Sy}`, xSy - 20, height - margins.bottom + 55);
     }
 
-    desenharLinhaFadiga() {
+    desenharLinhaGoodman() {
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
@@ -196,84 +220,75 @@ class DiagramaFadiga {
         const Sut = this.config.Sut;
         const maxTensao = Math.max(Se, Sut) * 1.2;
 
-        ctx.strokeStyle = this.colors.linhaFadiga;
+        ctx.strokeStyle = this.colors.linhaGoodman;
         ctx.lineWidth = 3;
         ctx.setLineDash([]);
 
-        // Linha de Goodman modificada: σa/Se + σm/Sut = 1
-        ctx.beginPath();
-        
+        // Linha de Goodman: de (0, Se) até (Sut, 0)
         const xScale = (width - margins.left - margins.right) / maxTensao;
         const yScale = (height - margins.top - margins.bottom) / maxTensao;
 
-        for (let σm = 0; σm <= Sut; σm += Sut / 100) {
-            const σa = Se * (1 - σm / Sut);
-            
-            if (σa >= 0) {
-                const x = margins.left + σm * xScale;
-                const y = height - margins.bottom - σa * yScale;
-                
-                if (σm === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-        }
+        const x1 = margins.left; // σm = 0
+        const y1 = height - margins.bottom - Se * yScale; // σa = Se
         
+        const x2 = margins.left + Sut * xScale; // σm = Sut
+        const y2 = height - margins.bottom; // σa = 0
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
 
-        // Adicionar label da linha de fadiga
-        ctx.fillStyle = this.colors.linhaFadiga;
-        ctx.font = 'bold 14px Arial';
-        ctx.fillText(`Se = ${Se.toFixed(1)} MPa`, width - margins.right - 100, margins.top + 20);
+        // Preencher área de Goodman (triângulo)
+        ctx.fillStyle = this.colors.areaGoodman;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.lineTo(x1, y2);
+        ctx.closePath();
+        ctx.fill();
     }
 
-    desenharPontoTensao() {
+    desenharAreaEscoamento() {
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
         const margins = this.margins;
         
-        const tensaoMax = this.resultadosFadiga.tensaoMaxima / 1e6;
-        const Se = this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa;
-        const maxTensao = Math.max(tensaoMax, Se) * 1.5;
+        const Sy = this.config.Sy;
+        const maxTensao = Math.max(Sy, this.config.Sut, this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa) * 1.2;
 
         const xScale = (width - margins.left - margins.right) / maxTensao;
         const yScale = (height - margins.top - margins.bottom) / maxTensao;
 
-        // Para simplificar, vamos considerar σm = 0 e σa = tensão máxima
-        const σm = 0; // Tensão média (assumindo carga completamente reversa)
-        const σa = tensaoMax; // Tensão alternada
+        // Linha de escoamento: de (Sy, 0) até (0, Sy) - formando triângulo
+        const x1 = margins.left + Sy * xScale; // σm = Sy
+        const y1 = height - margins.bottom; // σa = 0
+        
+        const x2 = margins.left; // σm = 0
+        const y2 = height - margins.bottom - Sy * yScale; // σa = Sy
 
-        const x = margins.left + σm * xScale;
-        const y = height - margins.bottom - σa * yScale;
-
-        // Desenhar ponto
-        ctx.fillStyle = this.colors.linhaTensao;
+        // Desenhar área de escoamento (triângulo)
+        ctx.fillStyle = this.colors.areaEscoamento;
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.moveTo(x1, y1); // (Sy, 0)
+        ctx.lineTo(x2, y2); // (0, Sy)
+        ctx.lineTo(x2, y1); // (0, 0)
+        ctx.closePath();
         ctx.fill();
 
-        // Desenhar linha de referência
-        ctx.strokeStyle = this.colors.linhaTensao;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
+        // Linha de escoamento
+        ctx.strokeStyle = this.colors.linhaEscoamento;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, height - margins.bottom);
-        ctx.moveTo(x, y);
-        ctx.lineTo(margins.left, y);
+        ctx.moveTo(x1, y1); // (Sy, 0)
+        ctx.lineTo(x2, y2); // (0, Sy)
         ctx.stroke();
         ctx.setLineDash([]);
-
-        // Adicionar label do ponto
-        ctx.fillStyle = this.colors.linhaTensao;
-        ctx.font = 'bold 12px Arial';
-        ctx.fillText(`σ = ${tensaoMax.toFixed(1)} MPa`, x + 10, y - 10);
     }
 
-    desenharAreas() {
+    desenharAreaSegura() {
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
@@ -281,47 +296,155 @@ class DiagramaFadiga {
         
         const Se = this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa;
         const Sut = this.config.Sut;
-        const maxTensao = Math.max(Se, Sut) * 1.2;
+        const Sy = this.config.Sy;
+        const maxTensao = Math.max(Se, Sut, Sy) * 1.2;
 
         const xScale = (width - margins.left - margins.right) / maxTensao;
         const yScale = (height - margins.top - margins.bottom) / maxTensao;
 
-        // Área segura (abaixo da linha de fadiga)
+        // Área segura = SOBREPOSIÇÃO dos dois triângulos
+        // Ou seja, a área que está dentro de AMBOS os triângulos
         ctx.fillStyle = this.colors.areaSegura;
         ctx.beginPath();
+        
+        // Começar na origem (0,0) - ponto comum a ambos os triângulos
         ctx.moveTo(margins.left, height - margins.bottom);
         
-        for (let σm = 0; σm <= Sut; σm += Sut / 100) {
-            const σa = Se * (1 - σm / Sut);
-            if (σa >= 0) {
-                const x = margins.left + σm * xScale;
-                const y = height - margins.bottom - σa * yScale;
-                ctx.lineTo(x, y);
+        // Seguir pelo eixo X até o ponto onde as duas linhas se encontram
+        // ou até o menor limite no eixo X (Sy ou Sut)
+        const xLimit = Math.min(Sy, Sut);
+        ctx.lineTo(margins.left + xLimit * xScale, height - margins.bottom);
+        
+        // Agora subir pela linha MAIS BAIXA (mais restritiva) das duas
+        // Isso cria a borda superior da área segura
+        
+        // Para cada ponto no eixo X, escolher a menor tensão alternada entre as duas linhas
+        const pontos = [];
+        const numPontos = 20;
+        
+        for (let i = 0; i <= numPontos; i++) {
+            const σm = (xLimit * i) / numPontos;
+            
+            // Tensão alternada na linha de Goodman
+            const σa_goodman = Se * (1 - σm / Sut);
+            
+            // Tensão alternada na linha de Escoamento (Sy-Sy)
+            const σa_escoamento = Sy - σm;
+            
+            // Escolher a MENOR tensão alternada (mais restritiva)
+            const σa_restritiva = Math.min(σa_goodman, σa_escoamento);
+            
+            // Só incluir pontos onde ambas as condições são satisfeitas
+            if (σa_restritiva >= 0) {
+                pontos.push({
+                    x: margins.left + σm * xScale,
+                    y: height - margins.bottom - σa_restritiva * yScale
+                });
             }
         }
         
-        ctx.lineTo(margins.left + Sut * xScale, height - margins.bottom);
+        // Conectar os pontos para formar a borda superior
+        pontos.forEach((ponto, index) => {
+            if (index === 0) {
+                ctx.lineTo(ponto.x, ponto.y);
+            } else {
+                ctx.lineTo(ponto.x, ponto.y);
+            }
+        });
+        
+        // Voltar para a origem pelo eixo Y
+        ctx.lineTo(margins.left, height - margins.bottom - Math.min(Se, Sy) * yScale);
+        
         ctx.closePath();
+        ctx.fill();
+        
+        // Opcional: desenhar a linha da borda superior para destacar
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(margins.left, height - margins.bottom - Math.min(Se, Sy) * yScale);
+        pontos.forEach(ponto => {
+            ctx.lineTo(ponto.x, ponto.y);
+        });
+        ctx.stroke();
+    }
+
+    desenharRetanguloEsforco() {
+        const ctx = this.ctx;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const margins = this.margins;
+        
+        const Se = this.resultadosFadiga.limiteFadiga.detalhes.Se_MPa;
+        const Sut = this.config.Sut;
+        const Sy = this.config.Sy;
+        const maxTensao = Math.max(Se, Sut, Sy) * 1.2;
+
+        const xScale = (width - margins.left - margins.right) / maxTensao;
+        const yScale = (height - margins.top - margins.bottom) / maxTensao;
+
+        // Obter tensões corrigidas
+        const tensoesCorrigidas = this.resultadosFadiga.limiteFadiga.fatores.tensoesCorrigidas;
+        if (!tensoesCorrigidas) {
+            console.warn("Dados de tensões corrigidas não disponíveis");
+            return;
+        }
+
+        const vonMisesCorrigido = tensoesCorrigidas.vonMises.corrigido / 1e6; // MPa
+        const flexaoCorrigida = tensoesCorrigidas.flexao.corrigida / 1e6; // MPa
+
+        console.log("Tensões para retângulo:", { vonMisesCorrigido, flexaoCorrigida });
+
+        // Retângulo de esforço: de (0,0) até (vonMisesCorrigido, flexaoCorrigida)
+        const xStart = margins.left;
+        const yStart = height - margins.bottom;
+        const rectWidth = vonMisesCorrigido * xScale;
+        const rectHeight = flexaoCorrigida * yScale;
+
+        // Desenhar retângulo
+        ctx.fillStyle = this.colors.retanguloEsforco;
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 2;
+        
+        ctx.fillRect(xStart, yStart - rectHeight, rectWidth, rectHeight);
+        ctx.strokeRect(xStart, yStart - rectHeight, rectWidth, rectHeight);
+
+        // Desenhar ponto no vértice do retângulo
+        ctx.fillStyle = '#2980b9';
+        ctx.beginPath();
+        ctx.arc(xStart + rectWidth, yStart - rectHeight, 6, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Área insegura (acima da linha de fadiga)
-        ctx.fillStyle = this.colors.areaInsegura;
+        // Linhas de referência do ponto
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        
+        // Linha vertical até eixo X
         ctx.beginPath();
-        ctx.moveTo(margins.left, height - margins.bottom - Se * yScale);
+        ctx.moveTo(xStart + rectWidth, yStart - rectHeight);
+        ctx.lineTo(xStart + rectWidth, yStart);
+        ctx.stroke();
         
-        for (let σm = 0; σm <= Sut; σm += Sut / 100) {
-            const σa = Se * (1 - σm / Sut);
-            if (σa >= 0) {
-                const x = margins.left + σm * xScale;
-                const y = height - margins.bottom - σa * yScale;
-                ctx.lineTo(x, y);
-            }
-        }
+        // Linha horizontal até eixo Y
+        ctx.beginPath();
+        ctx.moveTo(xStart + rectWidth, yStart - rectHeight);
+        ctx.lineTo(xStart, yStart - rectHeight);
+        ctx.stroke();
         
-        ctx.lineTo(margins.left + Sut * xScale, height - margins.bottom);
-        ctx.lineTo(margins.left, height - margins.bottom);
-        ctx.closePath();
-        ctx.fill();
+        ctx.setLineDash([]);
+
+        // Labels das tensões
+        ctx.fillStyle = '#2980b9';
+        ctx.font = 'bold 12px Arial';
+        
+        // Label no eixo X (von Mises)
+        ctx.fillText(`σ' = ${vonMisesCorrigido.toFixed(1)} MPa`, 
+                    xStart + rectWidth - 40, yStart + 20);
+        
+        // Label no eixo Y (flexão)
+        ctx.fillText(`σ = ${flexaoCorrigida.toFixed(1)} MPa`, 
+                    xStart - 70, yStart - rectHeight + 4);
     }
 
     desenharLegenda() {
@@ -330,15 +453,15 @@ class DiagramaFadiga {
         const margins = this.margins;
 
         const legendaItems = [
-            { color: this.colors.linhaFadiga, text: 'Linha de Fadiga (Goodman)' },
-            { color: this.colors.linhaTensao, text: 'Tensão de Trabalho' },
-            { color: this.colors.areaSegura, text: 'Área Segura' },
-            { color: this.colors.areaInsegura, text: 'Área Insegura' }
+            { color: this.colors.linhaGoodman, text: 'Linha de Goodman (Se-Sut)' },
+            { color: this.colors.linhaEscoamento, text: 'Linha de Escoamento (Sy-Sy)' },
+            { color: this.colors.retanguloEsforco, text: 'Área de Esforço' },
+            { color: this.colors.areaSegura, text: 'Área Segura (Interseção)' }
         ];
 
         ctx.font = '12px Arial';
         const itemHeight = 20;
-        const startX = width - margins.right - 150;
+        const startX = width - margins.right - 180;
         const startY = this.margins.top + 100;
 
         legendaItems.forEach((item, index) => {
@@ -371,7 +494,6 @@ class DiagramaFadiga {
 }
 
 // Função global para ser chamada pelo botão
-// Função global melhorada para ser chamada pelo botão
 function gerarDiagramaFadiga() {
     console.log("Gerando diagrama de fadiga...");
     
@@ -393,12 +515,6 @@ function gerarDiagramaFadiga() {
             configuracao = window.gerenciadorDiagramas.config;
             resultadosEstatica = window.gerenciadorDiagramas.resultadosEstatica;
         }
-        // Método 3: Tentar encontrar na página
-        else {
-            console.log("Tentando obter dados da página...");
-            // Se você tem algum elemento na página que contém os dados, pode tentar aqui
-            // Por exemplo, se os dados estão em variáveis globais ou em elementos HTML
-        }
 
         // Verificar se temos todos os dados necessários
         if (dadosEixo && configuracao && resultadosEstatica) {
@@ -412,11 +528,11 @@ function gerarDiagramaFadiga() {
                 configuracao: !!configuracao,
                 resultadosEstatica: !!resultadosEstatica
             });
-            alert('Erro: Dados de análise não encontrados. Execute a análise primeiro.\n\nDicas:\n- Certifique-se de executar a análise estática primeiro\n- Verifique se todos os campos foram preenchidos\n- Recarregue a página e tente novamente');
+            alert('Erro: Dados de análise não encontrados. Execute a análise primeiro.');
         }
     } catch (error) {
         console.error('Erro ao gerar diagrama:', error);
-        alert('Erro ao gerar diagrama: ' + error.message + '\n\nConsole aberto para mais detalhes.');
+        alert('Erro ao gerar diagrama: ' + error.message);
     }
 }
 
@@ -441,34 +557,44 @@ DiagramaFadiga.prototype.adicionarInformacoesAdicionais = function() {
     infoDiv.style.border = '1px solid #dee2e6';
 
     const resultados = this.resultadosFadiga;
-    const tensaoTrabalho = resultados.tensaoMaxima / 1e6;
-    const limiteFadiga = resultados.limiteFadiga.detalhes.Se_MPa;
-    const fatorSeguranca = limiteFadiga / tensaoTrabalho;
+    const tensoesCorrigidas = resultados.limiteFadiga.fatores.tensoesCorrigidas;
+    
+    const vonMisesCorrigido = tensoesCorrigidas ? tensoesCorrigidas.vonMises.corrigido / 1e6 : 0;
+    const flexaoCorrigida = tensoesCorrigidas ? tensoesCorrigidas.flexao.corrigida / 1e6 : 0;
+    const Se = resultados.limiteFadiga.detalhes.Se_MPa;
+    const Sut = this.config.Sut;
+    const Sy = this.config.Sy;
+
+    // Verificar se está na área segura (Goodman Modificado)
+    const criterioGoodman = (flexaoCorrigida / Se) + (vonMisesCorrigido / Sut) <= 1;
+    const criterioEscoamento = (flexaoCorrigida / Sy) + (vonMisesCorrigido / Sy) <= 1;
+    const seguro = criterioGoodman && criterioEscoamento;
 
     infoDiv.innerHTML = `
-        <h4 style="color: #2c3e50; margin-bottom: 15px;">📋 Interpretação do Diagrama</h4>
+        <h4 style="color: #2c3e50; margin-bottom: 15px;">📋 Interpretação do Diagrama - Goodman Modificado</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div>
-                <strong>Limite de Fadiga (Se):</strong> ${limiteFadiga.toFixed(1)} MPa<br>
-                <strong>Tensão de Trabalho:</strong> ${tensaoTrabalho.toFixed(1)} MPa<br>
-                <strong>Fator de Segurança:</strong> ${fatorSeguranca.toFixed(2)}
+                <strong>Limite de Fadiga (Se):</strong> ${Se.toFixed(1)} MPa<br>
+                <strong>Resistência Última (Sut):</strong> ${Sut} MPa<br>
+                <strong>Limite de Escoamento (Sy):</strong> ${Sy} MPa
             </div>
             <div>
-                <strong>Status:</strong> <span style="color: ${fatorSeguranca >= 1.5 ? '#27ae60' : '#e74c3c'}; font-weight: bold;">
-                    ${fatorSeguranca >= 1.5 ? 'PROJETO SEGURO' : 'ATENÇÃO REQUERIDA'}
-                </span><br>
-                <strong>Critério:</strong> Goodman Modificado<br>
-                <strong>Material:</strong> ${this.config.tipoMaterial === 'aco' ? 'Aço' : 'Ferro Fundido'}
+                <strong>σ Flexão Corrigida:</strong> ${flexaoCorrigida.toFixed(1)} MPa<br>
+                <strong>σ' Von Mises Corrigido:</strong> ${vonMisesCorrigido.toFixed(1)} MPa<br>
+                <strong>Status:</strong> <span style="color: ${seguro ? '#27ae60' : '#e74c3c'}; font-weight: bold;">
+                    ${seguro ? 'SEGURO' : 'NÃO SEGURO'}
+                </span>
             </div>
         </div>
         <div style="margin-top: 10px; font-size: 0.9em; color: #6c757d;">
-            <strong>Observação:</strong> O diagrama considera carga completamente reversa (σm = 0). 
-            Para cargas com componente média, o ponto se moveria ao longo do eixo horizontal.
+            <strong>Critério de Goodman Modificado:</strong><br>
+            • Goodman: σa/Se + σm/Sut ≤ 1 → ${criterioGoodman ? 'ATENDE' : 'NÃO ATENDE'}<br>
+            • Escoamento: σa/Sy + σm/Sy ≤ 1 → ${criterioEscoamento ? 'ATENDE' : 'NÃO ATENDE'}<br>
+            <strong>Área segura:</strong> Interseção dos dois triângulos (Goodman ∩ Escoamento)
         </div>
     `;
 
     container.appendChild(infoDiv);
 };
 
-// Função de debug para verificar se o script foi carregado
 console.log("diagrama2.js carregado com sucesso!");
