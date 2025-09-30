@@ -177,7 +177,7 @@ class AnalisadorFadiga {
         const fatores = {
             'flexao': 1.0,
             'torsao': 1.0,
-            'axial': 0.70
+            'normal': 0.70
         };
         return fatores[tipoCarga] || 1.0;
     }
@@ -284,7 +284,7 @@ class AnalisadorFadiga {
                 return fatores[chaves[i]] + fator * (fatores[chaves[i + 1]] - fatores[chaves[i]]);
             }
         }
-        
+        this.calcularCcarg
         return fatores[95];
     }
 

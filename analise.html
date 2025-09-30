@@ -3,67 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise do Eixo</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Análise Avançada de Fadiga</title>
+    <link rel="stylesheet" href="analise-avancada.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Análise do Eixo</h1>
-            <p id="infoModo">Preencha os dados do eixo para análise</p>
+            <h1>🔬 Análise Avançada de Fadiga</h1>
+            <p>Preencha os dados disponíveis para análise do ponto selecionado</p>
         </header>
-        
-        <!-- Seção de entrada de dados -->
-        <div class="dados-section">
-            <h2>Dados do Eixo</h2>
-            <form id="formDados">
-                <!-- Campos de entrada de dados -->
-                <div class="form-group">
-                    <label for="comprimento">Comprimento (mm):</label>
-                    <input type="number" id="comprimento" name="comprimento" required>
+
+        <div class="painel-info">
+            <h3>📋 Informações do Ponto Selecionado</h3>
+            <div id="infoPontoSelecionado" class="info-grid"></div>
+        </div>
+
+        <div class="form-container">
+            <div class="configuracoes-unidades">
+                <h3>⚙️ Configurações de Unidades</h3>
+                <div class="unidades-grid">
+                    <div class="unidade-grupo">
+                        <label>Dimensões:</label>
+                        <select id="unidadeDimensao" class="select-unidade">
+                            <option value="mm">Milímetros (mm)</option>
+                            <option value="in">Polegadas (in)</option>
+                        </select>
+                    </div>
+                    <div class="unidade-grupo">
+                        <label>Tensão:</label>
+                        <select id="unidadeTensao" class="select-unidade">
+                            <option value="MPa">Megapascal (MPa)</option>
+                            <option value="KPSI">Kilopound per square inch (KPSI)</option>
+                        </select>
+                    </div>
+                    <div class="unidade-grupo">
+                        <label>Torque/Momento:</label>
+                        <select id="unidadeTorque" class="select-unidade">
+                            <option value="Nm">Newton-metro (Nm)</option>
+                            <option value="lb-in">Pound-inch (lb-in)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="diametro">Diâmetro (mm):</label>
-                    <input type="number" id="diametro" name="diametro" required>
+            </div>
+
+            <form id="formAnaliseAvancada" class="form-analise">
+                <div class="form-colunas">
+                    <div class="form-coluna">
+                        <h4>📐 Dados Geométricos</h4>
+                        
+                        <div class="input-group">
+                            <label for="diametroMaior">Diâmetro Maior (D):</label>
+                            <input type="number" id="diametroMaior" step="0.01" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeD">mm</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="diametroMenor">Diâmetro Menor (d):</label>
+                            <input type="number" id="diametroMenor" step="0.01" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidaded">mm</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="raio">Raio de Entalhe (r):</label>
+                            <input type="number" id="raio" step="0.01" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeRaio">mm</span>
+                        </div>
+                    </div>
+
+                    <div class="form-coluna">
+                        <h4>🔩 Propriedades do Material</h4>
+                        
+                        <div class="input-group">
+                            <label for="sut">Resistência à Tração (SUT):</label>
+                            <input type="number" id="sut" step="0.1" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeSut">MPa</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="sy">Tensão de Escoamento (Sy):</label>
+                            <input type="number" id="sy" step="0.1" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeSy">MPa</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="acabamento">Acabamento Superficial:</label>
+                            <select id="acabamento">
+                                <option value="">Selecione...</option>
+                                <option value="retificado">Retificado</option>
+                                <option value="usinado">Usinado ou Estirado a Frio</option>
+                                <option value="laminado">Laminado a Quente</option>
+                                <option value="forjado">Forjado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-coluna">
+                        <h4>⚡ Carregamentos</h4>
+                        
+                        <div class="input-group">
+                            <label for="torque">Torque Aplicado (T):</label>
+                            <input type="number" id="torque" step="0.1" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeTorqueInput">Nm</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="momento">Momento Fletor (M):</label>
+                            <input type="number" id="momento" step="0.1" placeholder="Deixe em branco para calcular">
+                            <span class="unidade" id="unidadeMomento">Nm</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="vidaUtil">Vida Útil Desejada:</label>
+                            <select id="vidaUtil">
+                                <option value="infinita">Vida Infinita (N > 10⁶ ciclos)</option>
+                                <option value="finita">Vida Finita</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" id="ciclosGroup" style="display: none;">
+                            <label for="ciclos">Número de Ciclos (N):</label>
+                            <input type="number" id="ciclos" step="1000" placeholder="Ex: 100000">
+                            <span class="unidade">ciclos</span>
+                        </div>
+                    </div>
+
+                    <div class="form-coluna">
+                        <h4>➕ Configurações Adicionais</h4>
+                        
+                        <div class="input-group">
+                            <label for="confiabilidade">Confiabilidade (%):</label>
+                            <select id="confiabilidade">
+                                <option value="50">50%</option>
+                                <option value="90">90%</option>
+                                <option value="95">95%</option>
+                                <option value="99">99%</option>
+                                <option value="99.9">99.9%</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="temperatura">Temperatura de Operação (T):</label>
+                            <input type="number" id="temperatura" step="1" value="20" placeholder="Padrão 20">
+                            <span class="unidade">°C</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="tipoCarga">Tipo de Carregamento:</label>
+                            <select id="tipoCarga">
+                                <option value="flexao">Flexão</option>
+                                <option value="axial">Axial</option>
+                                <option value="normal">Normal</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="tipoMaterial">Tipo de Material:</label>
+                            <select id="tipoMaterial">
+                                <option value="aco">Aço</option>
+                                <option value="aluminio">Alumínio</option>
+                                <option value="outro">Outro (Ajuste manual de Se)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <!-- Adicione mais campos conforme necessário -->
+
+                <div class="form-acoes">
+                    <button type="button" onclick="calcularAnaliseAvancada()" class="btn-calcular">
+                        🧮 Calcular Análise
+                    </button>
+                    <button type="button" onclick="voltarParaResultados()" class="btn-voltar">
+                        ↩️ Voltar aos Resultados
+                    </button>
+                    <button type="button" onclick="limparFormulario()" class="btn-limpar">
+                        🗑️ Limpar
+                    </button>
+                </div>
             </form>
         </div>
-        
-        <!-- Seção de resultados -->
-        <div class="resultados-section">
-            <h2>Resultados</h2>
-            <div id="resultadosCalculo"></div>
-            <div id="resultadosDiagrama"></div>
-        </div>
-        
-        <div class="controls">
-            <button onclick="calcular()">Calcular</button>
-            <button onclick="gerarDiagrama()">Gerar Diagrama</button>
-            <button onclick="voltarParaMenu()">Voltar ao Menu</button>
+
+        <div id="resultadosAnalise" class="resultados-container" style="display: none;">
+            <div class="cabecalho-resultados">
+                <h2>📊 Resultados da Análise Avançada</h2>
+            </div>
+            <div id="conteudoResultadosAnalise" class="conteudo-resultados"></div>
         </div>
     </div>
 
-    <script src="calculos.js"></script>
-    <script src="diagrama.js"></script>
-    <script src="diagrama2.js"></script>
-    <script src="main.js"></script>
-    <script>
-        // Ao carregar a página, verifica se temos dados do desenho
-        document.addEventListener('DOMContentLoaded', function() {
-            const dados = carregarDados();
-            const modo = localStorage.getItem('modoAnalise');
-            
-            if (modo === 'desenho' && dados.desenhoFeito) {
-                document.getElementById('infoModo').textContent = 
-                    'Dados carregados do desenho do eixo. Verifique e ajuste se necessário.';
-                // Preenche os campos com os dados do desenho
-                if (dados.geometria) {
-                    document.getElementById('comprimento').value = dados.geometria.comprimento || '';
-                    document.getElementById('diametro').value = dados.geometria.diametro || '';
-                }
-            }
-        });
-    </script>
+    <script src="analise-avancada.js"></script>
 </body>
 </html>

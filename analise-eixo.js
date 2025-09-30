@@ -392,6 +392,9 @@ function exibirInterfaceSelecao(resultados, integrador) {
             </table>
         </div>
 
+        <!-- VISUALIZAÇÃO DO EIXO -->
+        ${gerarDesenhoEixo(resultados, resultados.dadosEixo)}
+
         <div class="painel-resultado">
             <h3>🎯 Selecione um Ponto para Análise Avançada</h3>
             <p>Clique em qualquer linha da tabela abaixo para selecionar o ponto que deseja analisar:</p>
@@ -438,19 +441,19 @@ function exibirInterfaceSelecao(resultados, integrador) {
                     </tbody>
                 </table>
             </div>
-            
+        </div>
+
+        <!-- DETALHES DO PONTO SELECIONADO -->
             <div id="detalhesPonto" class="detalhes-ponto" style="display: none; margin-top: 20px;">
                 <h4>📊 Detalhes do Ponto Selecionado</h4>
                 <div id="conteudoDetalhes"></div>
-                <button id="btnAnaliseAvancada" class="btn-avancar" onclick="iniciarAnaliseAvancada()" style="margin-top: 15px;">
-                    🚀 Iniciar Análise Avançada
-                </button>
+                <div style="text-align: right; margin-top: 15px;">
+                    <button id="btnAnaliseAvancada" class="btn-avancar" onclick="iniciarAnaliseAvancada()">
+                        🚀 Iniciar Análise Avançada
+                    </button>
+                </div>
             </div>
-        </div>
     `;
-
-    // Adicionar visualização do eixo
-    html += gerarDesenhoEixo(resultados, resultados.dadosEixo);
     
     // Botões de ação
     html += `
