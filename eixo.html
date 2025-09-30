@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desenho do Eixo</title>
+    <link rel="stylesheet" href="eixo.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Desenho do Eixo</h1>
+            <p>Desenhe a geometria do eixo adicionando seções</p>
+        </header>
+        
+        <!-- Controles de entrada -->
+        <div class="controles-entrada">
+            <div class="form-group">
+                <label for="diametro">Diâmetro (mm):</label>
+                <input type="number" id="diametro" value="50" min="1" step="1">
+            </div>
+            <div class="form-group">
+                <label for="comprimento">Comprimento (mm):</label>
+                <input type="number" id="comprimento" value="100" min="1" step="1">
+            </div>
+            <button id="btnAdicionarSecao">Adicionar Seção</button>
+        </div>
+        
+        <!-- Área de visualização do eixo -->
+        <div class="area-visualizacao">
+            <div id="visualizacaoEixo">
+                <div id="setasContainer"></div>
+                <div id="eixoContainer"></div>
+                <div id="cotasContainer"></div>
+            </div>
+        </div>
+        
+        <!-- Controles de ação -->
+        <div class="controles-acao">
+            <button id="btnDetalharEixo">Detalhar Pontos</button>
+            <button id="btnLimparEixo">Limpar Eixo</button>
+            <button id="btnCalcularReacoes">Continuar para Análise</button>
+            <button id="btnVoltarMenu">Voltar ao Menu</button>
+        </div>
+        
+        <!-- Descrição do eixo -->
+        <div id="descricaoEixo" class="descricao-container"></div>
+    </div>
+
+    <!-- Modal de configuração -->
+    <div id="modalConfig" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Configuração dos Pontos do Eixo</h3>
+            <div id="configuracoesPontos" class="config-container"></div>
+            <button id="btnSalvarConfig">Salvar Configurações</button>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="eixo.js"></script>
+</body>
+</html>

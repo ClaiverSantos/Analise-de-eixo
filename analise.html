@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise do Eixo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Análise do Eixo</h1>
+            <p id="infoModo">Preencha os dados do eixo para análise</p>
+        </header>
+        
+        <!-- Seção de entrada de dados -->
+        <div class="dados-section">
+            <h2>Dados do Eixo</h2>
+            <form id="formDados">
+                <!-- Campos de entrada de dados -->
+                <div class="form-group">
+                    <label for="comprimento">Comprimento (mm):</label>
+                    <input type="number" id="comprimento" name="comprimento" required>
+                </div>
+                <div class="form-group">
+                    <label for="diametro">Diâmetro (mm):</label>
+                    <input type="number" id="diametro" name="diametro" required>
+                </div>
+                <!-- Adicione mais campos conforme necessário -->
+            </form>
+        </div>
+        
+        <!-- Seção de resultados -->
+        <div class="resultados-section">
+            <h2>Resultados</h2>
+            <div id="resultadosCalculo"></div>
+            <div id="resultadosDiagrama"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="calcular()">Calcular</button>
+            <button onclick="gerarDiagrama()">Gerar Diagrama</button>
+            <button onclick="voltarParaMenu()">Voltar ao Menu</button>
+        </div>
+    </div>
+
+    <script src="calculos.js"></script>
+    <script src="diagrama.js"></script>
+    <script src="diagrama2.js"></script>
+    <script src="main.js"></script>
+    <script>
+        // Ao carregar a página, verifica se temos dados do desenho
+        document.addEventListener('DOMContentLoaded', function() {
+            const dados = carregarDados();
+            const modo = localStorage.getItem('modoAnalise');
+            
+            if (modo === 'desenho' && dados.desenhoFeito) {
+                document.getElementById('infoModo').textContent = 
+                    'Dados carregados do desenho do eixo. Verifique e ajuste se necessário.';
+                // Preenche os campos com os dados do desenho
+                if (dados.geometria) {
+                    document.getElementById('comprimento').value = dados.geometria.comprimento || '';
+                    document.getElementById('diametro').value = dados.geometria.diametro || '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

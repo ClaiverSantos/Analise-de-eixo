@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise do Eixo - Cálculos Estáticos</title>
+    <link rel="stylesheet" href="analise-eixo.css"> 
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Análise do Eixo</h1>
+            <p>Cálculos estáticos e identificação da seção crítica</p>
+        </header>
+
+        <div id="infoEixo" class="painel-info">
+            <h3>📋 Informações do Eixo</h3>
+            <div id="dadosEixoInfo" class="dados-eixo">
+                Carregando dados do eixo...
+            </div>
+        </div>
+
+        <div id="resultadosContainer" class="resultados-container">
+            <div class="cabecalho-resultados">
+                <h2>⚙️ Resultados dos Cálculos</h2>
+                <div class="controles-resultados">
+                    <button id="btnExportar" class="btn-exportar">📥 Exportar Resultados</button>
+                    <button id="btnAvancarFadiga" class="btn-avancar">📈 Avançar para Análise de Fadiga</button>
+                    <button id="btnVoltar" class="btn-voltar">↩️ Voltar ao Desenho</button>
+                </div>
+            </div>
+            
+            <div id="conteudoResultados">
+                <div class="carregando">
+                    <div class="spinner"></div>
+                    <p>Aguardando inicialização da análise...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="visualizacaoContainer" class="visualizacao-container">
+            <h3>📐 Visualização do Eixo com Pontos Críticos</h3>
+            <div id="desenhoEixoAnalise" class="desenho-eixo-analise">
+                </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="analise-eixo.js"></script>
+   
+    </body>
+</html>
