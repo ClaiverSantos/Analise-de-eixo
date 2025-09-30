@@ -609,3 +609,26 @@ button {
     70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
     100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
+/* Estilo para o marcador visual do ponto no desenho */
+.ponto-visual {
+    /* ... (seus estilos existentes para o ponto-visual) */
+    transition: all 0.3s ease; /* Manter a transição para o efeito suave */
+    opacity: 1; 
+}
+
+/* NOVO: Estilo para os pontos que não estão selecionados */
+.ponto-deselecionado {
+    opacity: 0.3; /* Deixa o ponto meio transparente/cinza */
+    filter: grayscale(80%); /* Tira um pouco da cor */
+    border: 2px solid #999 !important; /* Borda neutra */
+    transform: translate(-50%, -50%) scale(0.9) !important; /* Diminui levemente */
+}
+
+/* NOVO: Estilo para o ponto que ESTÁ selecionado */
+.ponto-selecionado {
+    opacity: 1 !important;
+    filter: none !important;
+    border: 3px solid #FFD700 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8) !important;
+    transform: translate(-50%, -50%) scale(1.3) !important;
+}

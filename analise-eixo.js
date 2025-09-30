@@ -1,37 +1,94 @@
-// --- Início das Classes de Cálculo ---
+// --- MÓDULO DE PERSISTÊNCIA DE DADOS (CARREGAMENTO DO EIXO) ---
+
+/**
+ * Carrega a geometria do eixo salva no localStorage pela página de desenho.
+ * A chave 'dados_eixo' deve ser a mesma usada para salvar no 'eixo.html'.
+ */
+function carregarDados() {
+    try {
+        // CORREÇÃO ESSENCIAL: Garante que a chave é a mesma do main.js
+        const dadosJSON = localStorage.getItem('dados_eixo'); 
+        if (dadosJSON) {
+            const dados = JSON.parse(dadosJSON);
+            
+            // Verifica se o objeto principal e a geometria existem
+            if (dados && dados.desenhoFeito && dados.geometria) {
+                // Lógica de compatibilidade (recriar pontos se necessário)
+                if (!dados.geometria.pontos) {
+                    dados.geometria.pontos = [];
+                    
+                    const pontosMancais = (dados.geometria.mancais || []).map(m => ({ x: m.x, tipo: 'mancal', raio: 0 }));
+                    const pontosCargas = (dados.geometria.carregamentos || []).map(c => ({ x: c.x, tipo: 'carga', raio: 0, forca: c.forca, torque: c.torque }));
+                    
+                    const pontosMudanca = [];
+                    if (dados.geometria.secoes) {
+                        for(let i = 0; i < dados.geometria.secoes.length - 1; i++) {
+                            const secaoAtual = dados.geometria.secoes[i];
+                            const proximaSecao = dados.geometria.secoes[i+1];
+                            
+                            if (secaoAtual.diametro !== proximaSecao.diametro) {
+                                pontosMudanca.push({ x: secaoAtual.posicaoFim, tipo: 'mudanca', raio: 0, d: secaoAtual.diametro });
+                            }
+                        }
+                    }
+
+                    // Junta todos os pontos
+                    dados.geometria.pontos.push(...pontosMancais, ...pontosCargas, ...pontosMudanca);
+                }
+                return dados; // Retorna o objeto completo
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao carregar dados do LocalStorage:", e);
+    }
+    // Retorna a estrutura para indicar falha no carregamento
+    return { desenhoFeito: false, geometria: null };
+}
+
+/**
+ * Salva os resultados da análise no localStorage para uso em outras páginas (ex: analise.html).
+ */
+function salvarDados(dados) {
+    // Nota: Essa função agora salva resultados de análise avançada em uma chave separada
+    localStorage.setItem('analise_avancada_results', JSON.stringify(dados));
+}
+
+// --------------------------------------------------------------------------------------------------
+// --- INÍCIO DAS CLASSES DE CÁLCULO E LÓGICA DE NEGÓCIO ---
+// --------------------------------------------------------------------------------------------------
 
 class CalculadorFadiga {
     constructor(dadosEixo, propriedadesMaterial) {
         this.dadosEixo = dadosEixo;
         this.material = propriedadesMaterial;
+        this._reacoes = null;
     }
 
     // Funções auxiliares de conversão
-    mmParaMetros(valorMM) {
-        return valorMM / 1000;
-    }
-
-    MPaParaPa(valorMPa) {
-        return valorMPa * 1e6;
-    }
+    mmParaMetros(valorMM) { return valorMM / 1000; }
+    MPaParaPa(valorMPa) { return valorMPa * 1e6; }
 
     // Cálculos básicos de tensão
     calcularTensaoFlexao(momentoFletor, diametroMM) {
+        if (diametroMM <= 0) return 0;
         const diametroM = this.mmParaMetros(diametroMM);
         const I = Math.PI * Math.pow(diametroM, 4) / 64;
         const c = diametroM / 2;
-        return (momentoFletor * c) / I;
+        return I === 0 ? 0 : (momentoFletor * c) / I; 
     }
 
     calcularTensaoTorsao(torque, diametroMM) {
+        if (diametroMM <= 0) return 0;
         const diametroM = this.mmParaMetros(diametroMM);
         const J = Math.PI * Math.pow(diametroM, 4) / 32;
         const c = diametroM / 2;
-        return (torque * c) / J;
+        return J === 0 ? 0 : (torque * c) / J;
     }
 
     // Cálculo de reações nos mancais
     calcularReacoes() {
+        if (this._reacoes) return this._reacoes; 
+
         const mancais = this.dadosEixo.pontos.filter(p => p.tipo === 'mancal');
         const cargas = this.dadosEixo.carregamentos;
         
@@ -49,13 +106,16 @@ class CalculadorFadiga {
         });
 
         const distanciaMancais = this.mmParaMetros(R2.x - R1.x);
+        if (distanciaMancais <= 0) throw new Error('Os mancais estão na mesma posição.');
+
         const R2_valor = somaMomentos / distanciaMancais;
         const R1_valor = cargas.reduce((sum, c) => sum + c.forca, 0) - R2_valor;
 
-        return {
+        this._reacoes = {
             R1: { x: R1.x, valor: R1_valor },
             R2: { x: R2.x, valor: R2_valor }
         };
+        return this._reacoes;
     }
 
     // Diagrama de momento fletor
@@ -65,13 +125,13 @@ class CalculadorFadiga {
         
         let momento = 0;
 
-        if (posicaoX > reacoes.R1.x) {
+        if (posicaoX >= reacoes.R1.x) {
             const braco = this.mmParaMetros(posicaoX - reacoes.R1.x);
             momento += reacoes.R1.valor * braco;
         }
 
         cargas.forEach(carga => {
-            if (carga.x < posicaoX) {
+            if (carga.x <= posicaoX) {
                 const braco = this.mmParaMetros(posicaoX - carga.x);
                 momento -= carga.forca * braco;
             }
@@ -80,56 +140,53 @@ class CalculadorFadiga {
         return momento;
     }
 
-    // Obter diâmetros da seção
+    // Obter diâmetros da seção 
     obterDiametrosSecao(ponto) {
+        const tolerancia = 1; 
+        
+        if (!this.dadosEixo.secoes || this.dadosEixo.secoes.length === 0) {
+            console.warn("Nenhuma seção de eixo encontrada. Usando diâmetro padrão.");
+            const diametroPadrao = ponto.d || 0;
+            return { d_menor: diametroPadrao, D_maior: diametroPadrao };
+        }
+
         if (ponto.tipo === 'mudanca') {
-            let diametro_antes = ponto.d;
-            let diametro_depois = ponto.d;
+            let diametro_antes = 0;
+            let diametro_depois = 0;
             
-            // Encontrar seção que TERMINA no ponto X (anterior)
             for (let secao of this.dadosEixo.secoes) {
-                if (Math.abs(secao.posicaoFim - ponto.x) < 1) {
+                if (Math.abs(secao.posicaoFim - ponto.x) < tolerancia) {
                     diametro_antes = secao.diametro;
-                    break;
                 }
-            }
-            
-            // Encontrar seção que COMEÇA no ponto X (posterior)
-            for (let secao of this.dadosEixo.secoes) {
-                if (Math.abs(secao.posicaoInicio - ponto.x) < 1) {
+                if (Math.abs(secao.posicaoInicio - ponto.x) < tolerancia) {
                     diametro_depois = secao.diametro;
-                    break;
                 }
             }
             
             const d_menor = Math.min(diametro_antes, diametro_depois);
             const D_maior = Math.max(diametro_antes, diametro_depois);
             
-            return { 
-                d_menor: d_menor, 
-                D_maior: D_maior 
-            };
+            return { d_menor: d_menor, D_maior: D_maior };
         } else {
-            // Para mancais e cargas, encontrar a seção onde estão localizados
             const secaoAtual = this.dadosEixo.secoes.find(secao => 
-                ponto.x >= secao.posicaoInicio && ponto.x <= secao.posicaoFim
+                ponto.x >= secao.posicaoInicio - tolerancia && ponto.x <= secao.posicaoFim + tolerancia
             );
-            const diametro = secaoAtual ? secaoAtual.diametro : ponto.d;
-            return { 
-                d_menor: diametro, 
-                D_maior: diametro 
-            };
+            const diametro = secaoAtual ? secaoAtual.diametro : (ponto.d || 0);
+            return { d_menor: diametro, D_maior: diametro };
         }
     }
 
-    // Identificar TODOS os pontos relevantes (mancais, cargas e mudanças)
+    // Identificar TODOS os pontos relevantes
     identificarTodosPontosRelevantes() {
         const todosPontos = [];
-        
-        this.dadosEixo.pontos.forEach(ponto => {
+        const pontosParaAnalisar = this.dadosEixo.pontos || [];
+
+        pontosParaAnalisar.forEach(ponto => {
             if (['mancal', 'carga', 'mudanca'].includes(ponto.tipo)) {
                 const { d_menor, D_maior } = this.obterDiametrosSecao(ponto);
                 const diametro_calculo = d_menor;
+                
+                if (diametro_calculo <= 0) return; 
 
                 const momento = this.calcularMomentoFletor(ponto.x);
                 const tensaoFlexao = this.calcularTensaoFlexao(momento, diametro_calculo);
@@ -148,6 +205,7 @@ class CalculadorFadiga {
                 );
                 
                 todosPontos.push({
+                    x: ponto.x,
                     posicao: ponto.x,
                     tipo: ponto.tipo,
                     diametro_menor: d_menor,
@@ -162,15 +220,8 @@ class CalculadorFadiga {
             }
         });
 
-        // Ordenar por tipo primeiro, depois por posição
-        return todosPontos.sort((a, b) => {
-            // Ordem: Mancais, Cargas, Mudanças
-            const ordemTipo = { 'mancal': 1, 'carga': 2, 'mudanca': 3 };
-            if (ordemTipo[a.tipo] !== ordemTipo[b.tipo]) {
-                return ordemTipo[a.tipo] - ordemTipo[b.tipo];
-            }
-            return a.posicao - b.posicao;
-        });
+        // Ordena por posição
+        return todosPontos.sort((a, b) => a.posicao - b.posicao);
     }
 
     // Cálculos detalhados para uma seção
@@ -183,20 +234,24 @@ class CalculadorFadiga {
         const sigma_x = tensaoFlexaoMPa;
         const tau_xy = tensaoTorsaoMPa;
         
-        const sigma_1 = (sigma_x / 2) + Math.sqrt(Math.pow(sigma_x / 2, 2) + Math.pow(tau_xy, 2));
-        const sigma_2 = (sigma_x / 2) - Math.sqrt(Math.pow(sigma_x / 2, 2) + Math.pow(tau_xy, 2));
-        const tau_max = Math.sqrt(Math.pow(sigma_x / 2, 2) + Math.pow(tau_xy, 2));
+        const radical = Math.sqrt(Math.pow(sigma_x / 2, 2) + Math.pow(tau_xy, 2));
+        const sigma_1 = (sigma_x / 2) + radical;
+        const sigma_2 = (sigma_x / 2) - radical;
+        const tau_max = radical;
         
+        const sigmaVonMisesMPa = secao.sigma_vonMises / 1e6;
+        const fatorSeguranca = sigmaVonMisesMPa > 0 ? SyMPa / sigmaVonMisesMPa : Infinity;
+
         return {
             tensaoFlexao: tensaoFlexaoMPa,
             tensaoTorsao: tensaoTorsaoMPa,
-            sigmaVonMises: secao.sigma_vonMises / 1e6,
+            sigmaVonMises: sigmaVonMisesMPa,
             tensoesPrincipais: {
                 sigma1: sigma_1,
                 sigma2: sigma_2,
                 tauMax: tau_max
             },
-            fatorSeguranca: SyMPa / (secao.sigma_vonMises / 1e6)
+            fatorSeguranca: fatorSeguranca
         };
     }
 }
@@ -204,9 +259,7 @@ class CalculadorFadiga {
 // --- Classe de Integração ---
 
 class IntegradorCalculos {
-    constructor() {
-        this.calculador = null;
-    }
+    constructor() { this.calculador = null; }
 
     inicializarCalculos(dadosEixoJSON) {
         const propriedadesMaterial = {
@@ -221,14 +274,10 @@ class IntegradorCalculos {
         return this.calculador;
     }
 
-    MPaParaPa(valorMPa) {
-        return valorMPa * 1e6;
-    }
+    MPaParaPa(valorMPa) { return valorMPa * 1e6; }
 
     executarCalculosCompletos() {
-        if (!this.calculador) {
-            throw new Error('Calculador não inicializado');
-        }
+        if (!this.calculador) throw new Error('Calculador não inicializado');
 
         const resultados = {
             reacoes: this.calculador.calcularReacoes(),
@@ -245,18 +294,17 @@ class IntegradorCalculos {
 window.CalculadorFadiga = CalculadorFadiga;
 window.IntegradorCalculos = IntegradorCalculos;
 
-// --- Inicialização da Página ---
-
 function inicializarAnaliseEixo() {
     const container = document.getElementById('conteudoResultados');
+    if (!container) return;
     
-    // Carregar dados do eixo
+    // Carregar dados (incluindo a correção no carregarDados que busca o localStorage)
     const dadosSalvos = carregarDados();
     
-    if (!dadosSalvos.desenhoFeito || !dadosSalvos.geometria) {
+    if (!dadosSalvos.desenhoFeito || !dadosSalvos.geometria || dadosSalvos.geometria.comprimentoTotal <= 0) {
         container.innerHTML = `
             <div class="erro">
-                <h3>❌ Nenhum eixo encontrado</h3>
+                <h3>❌ Nenhum eixo válido encontrado</h3>
                 <p>Volte à página de desenho para criar um eixo primeiro.</p>
                 <button onclick="voltarParaDesenho()" class="btn-voltar">Voltar ao Desenho</button>
             </div>
@@ -264,27 +312,23 @@ function inicializarAnaliseEixo() {
         return;
     }
 
-    // Exibir informações do eixo
     exibirInformacoesEixo(dadosSalvos.geometria);
 
     try {
-        // Executar cálculos
         const integrador = new IntegradorCalculos();
         integrador.inicializarCalculos(dadosSalvos.geometria);
         const resultados = integrador.executarCalculosCompletos();
 
-        // Guardar resultados globalmente
         window.resultadosCalculos = resultados;
         window.integradorGlobal = integrador;
 
-        // Exibir interface de seleção
         exibirInterfaceSelecao(resultados, integrador);
 
     } catch (error) {
         container.innerHTML = `
             <div class="erro">
                 <h3>❌ Erro nos Cálculos</h3>
-                <p>${error.message}</p>
+                <p>Ocorreu um erro: ${error.message}</p>
                 <button onclick="voltarParaDesenho()" class="btn-voltar">Voltar ao Desenho</button>
             </div>
         `;
@@ -293,6 +337,10 @@ function inicializarAnaliseEixo() {
 
 function exibirInformacoesEixo(dadosEixo) {
     const container = document.getElementById('dadosEixoInfo');
+    if (!container) return;
+    
+    const numMancais = (dadosEixo.mancais && dadosEixo.mancais.length) ? dadosEixo.mancais.length : (dadosEixo.pontos ? dadosEixo.pontos.filter(p => p.tipo === 'mancal').length : 0);
+    const numCargas = dadosEixo.carregamentos ? dadosEixo.carregamentos.length : 0;
     
     let html = `
         <div class="info-grid">
@@ -303,10 +351,10 @@ function exibirInformacoesEixo(dadosEixo) {
                 <strong>Número de seções:</strong> ${dadosEixo.secoes.length}
             </div>
             <div class="info-item">
-                <strong>Mancais:</strong> ${dadosEixo.mancais.length}
+                <strong>Mancais:</strong> ${numMancais}
             </div>
             <div class="info-item">
-                <strong>Cargas aplicadas:</strong> ${dadosEixo.carregamentos.length}
+                <strong>Cargas aplicadas:</strong> ${numCargas}
             </div>
         </div>
     `;
@@ -317,6 +365,19 @@ function exibirInformacoesEixo(dadosEixo) {
 function exibirInterfaceSelecao(resultados, integrador) {
     const container = document.getElementById('conteudoResultados');
     
+    // --- ALTERAÇÃO: ORDENAÇÃO POR TIPO E POSIÇÃO ---
+    const pontosOrdenados = [...resultados.todosPontos].sort((a, b) => {
+        // Mapeamento para ordem: Mancal(1) > Carga(2) > Mudança(3)
+        const tipoA = a.tipo === 'mancal' ? 1 : a.tipo === 'carga' ? 2 : 3;
+        const tipoB = b.tipo === 'mancal' ? 1 : b.tipo === 'carga' ? 2 : 3;
+        
+        if (tipoA !== tipoB) {
+            return tipoA - tipoB; // Ordena pelo tipo
+        }
+        return a.posicao - b.posicao; // Desempate pela posição
+    });
+    // ------------------------------------------
+
     let html = `
         <div class="painel-resultado">
             <h3>⚖️ Reações nos Mancais</h3>
@@ -350,11 +411,15 @@ function exibirInterfaceSelecao(resultados, integrador) {
                     <tbody>
     `;
     
-    resultados.todosPontos.forEach((ponto, index) => {
+    // Usa os pontos ordenados para gerar as linhas
+    pontosOrdenados.forEach((ponto, index) => {
+        // Encontra o índice no array original para passar para selecionarPonto
+        const indexOriginal = resultados.todosPontos.findIndex(p => p.x === ponto.x && p.tipo === ponto.tipo);
+
         const tensoes = integrador.calculador.calcularTensoesDetalhadas(ponto);
         
         html += `
-            <tr class="linha-selecionavel" data-index="${index}" onclick="selecionarPonto(${index})">
+            <tr class="linha-selecionavel" data-index="${indexOriginal}" onclick="selecionarPonto(${indexOriginal})">
                 <td>${ponto.posicao}</td>
                 <td>
                     ${ponto.tipo === 'mancal' ? '⚙️ Mancal' : 
@@ -363,7 +428,7 @@ function exibirInterfaceSelecao(resultados, integrador) {
                 </td>
                 <td>Ø${ponto.diametro_menor}</td>
                 <td>${ponto.momentoFletor.toFixed(2)}</td>
-                <td>${ponto.torque}</td>
+                <td>${ponto.torque.toFixed(0)}</td>
                 <td>${tensoes.sigmaVonMises.toFixed(1)}</td>
             </tr>
         `;
@@ -399,18 +464,13 @@ function exibirInterfaceSelecao(resultados, integrador) {
 }
 
 function selecionarPonto(index) {
-    // Remover seleção anterior
-    const linhas = document.querySelectorAll('.linha-selecionavel');
-    linhas.forEach(linha => linha.classList.remove('selecionada'));
+    // Remove seleção da tabela
+    document.querySelectorAll('.linha-selecionavel').forEach(linha => linha.classList.remove('selecionada'));
+    document.querySelector(`[data-index="${index}"]`).classList.add('selecionada');
     
-    // Adicionar seleção à linha clicada
-    const linhaSelecionada = document.querySelector(`[data-index="${index}"]`);
-    linhaSelecionada.classList.add('selecionada');
-    
-    // Atualizar destaque no desenho do eixo
+    // Atualiza destaque no desenho
     atualizarDestaqueDesenho(index);
     
-    // Mostrar detalhes do ponto
     const ponto = window.resultadosCalculos.todosPontos[index];
     const tensoes = window.integradorGlobal.calculador.calcularTensoesDetalhadas(ponto);
     
@@ -422,96 +482,53 @@ function selecionarPonto(index) {
         case 'mancal': tipoTexto = 'Mancal/Apoio'; break;
         case 'carga': tipoTexto = 'Ponto de Carga'; break;
         case 'mudanca': tipoTexto = 'Mudança de Diâmetro'; break;
+        default: tipoTexto = ponto.tipo;
     }
     
-    const relacaoDd = ponto.diametro_maior / ponto.diametro_menor;
+    const relacaoDd = ponto.diametro_menor > 0 ? (ponto.diametro_maior / ponto.diametro_menor) : 1;
     
     conteudoDetalhes.innerHTML = `
         <div class="detalhes-grid">
-            <div class="detalhe-item">
-                <strong>Tipo:</strong> ${tipoTexto}
-            </div>
-            <div class="detalhe-item">
-                <strong>Posição:</strong> ${ponto.posicao} mm
-            </div>
-            <div class="detalhe-item">
-                <strong>Diâmetro menor (d):</strong> Ø${ponto.diametro_menor} mm
-            </div>
-            <div class="detalhe-item">
-                <strong>Diâmetro maior (D):</strong> Ø${ponto.diametro_maior} mm
-            </div>
-            <div class="detalhe-item">
-                <strong>Relação D/d:</strong> ${relacaoDd.toFixed(2)}
-            </div>
-            <div class="detalhe-item">
-                <strong>Raio:</strong> ${ponto.raio} mm
-            </div>
-            <div class="detalhe-item">
-                <strong>Momento Fletor:</strong> ${ponto.momentoFletor.toFixed(2)} Nm
-            </div>
-            <div class="detalhe-item">
-                <strong>Torque:</strong> ${ponto.torque} Nm
-            </div>
-            <div class="detalhe-item">
-                <strong>σ Flexão:</strong> ${tensoes.tensaoFlexao.toFixed(1)} MPa
-            </div>
-            <div class="detalhe-item">
-                <strong>τ Cisalhamento:</strong> ${tensoes.tensaoTorsao.toFixed(1)} MPa
-            </div>
-            <div class="detalhe-item">
-                <strong>σ' Von Mises:</strong> ${tensoes.sigmaVonMises.toFixed(1)} MPa
-            </div>
+            <div class="detalhe-item"><strong>Tipo:</strong> ${tipoTexto}</div>
+            <div class="detalhe-item"><strong>Posição:</strong> ${ponto.posicao} mm</div>
+            <div class="detalhe-item"><strong>Diâmetro menor (d):</strong> Ø${ponto.diametro_menor} mm</div>
+            <div class="detalhe-item"><strong>Diâmetro maior (D):</strong> Ø${ponto.diametro_maior} mm</div>
+            <div class="detalhe-item"><strong>Relação D/d:</strong> ${relacaoDd.toFixed(2)}</div>
+            <div class="detalhe-item"><strong>Raio:</strong> ${ponto.raio} mm</div>
+            <div class="detalhe-item"><strong>Momento Fletor:</strong> ${ponto.momentoFletor.toFixed(2)} Nm</div>
+            <div class="detalhe-item"><strong>Torque:</strong> ${ponto.torque.toFixed(0)} Nm</div>
+            <div class="detalhe-item"><strong>σ Flexão:</strong> ${tensoes.tensaoFlexao.toFixed(1)} MPa</div>
+            <div class="detalhe-item"><strong>τ Cisalhamento:</strong> ${tensoes.tensaoTorsao.toFixed(1)} MPa</div>
+            <div class="detalhe-item"><strong>σ' Von Mises:</strong> ${tensoes.sigmaVonMises.toFixed(1)} MPa</div>
         </div>
     `;
     
     detalhesDiv.style.display = 'block';
-    
-    // Guardar ponto selecionado para análise avançada
     window.pontoSelecionado = ponto;
 }
 
-function atualizarDestaqueDesenho(indexSelecionado) {
-    const ponto = window.resultadosCalculos.todosPontos[indexSelecionado];
-    
-    // Remover destaque anterior - nova lógica
-    const marcadores = document.querySelectorAll('.ponto-visual');
-    marcadores.forEach(marcador => {
-        marcador.style.border = '2px solid white';
-        marcador.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-    });
-    
-    // Adicionar destaque ao ponto selecionado - nova lógica
-    const marcadorSelecionado = document.querySelector(`.ponto-visual[data-posicao="${ponto.posicao}"]`);
-    if (marcadorSelecionado) {
-        marcadorSelecionado.style.border = '3px solid #FFD700';
-        marcadorSelecionado.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
-        marcadorSelecionado.style.transform = 'translate(-50%, -50%) scale(1.3)';
-    }
-}
-
-// --- Função gerarDesenhoEixo atualizada ---
+// --- Função gerarDesenhoEixo (MODIFICADA para inicializar o cinza) ---
 function gerarDesenhoEixo(resultados, dadosEixo) {
-    // Calcular a escala baseada no comprimento total
-    const larguraContainer = 800; // Largura fixa para o container
+    const larguraContainer = 800;
     const escala = larguraContainer / dadosEixo.comprimentoTotal;
     
     let html = `
         <div class="painel-resultado">
             <h3>📐 Visualização do Eixo</h3>
-            <div style="position: relative; height: 300px; border: 1px solid #ddd; background: #f9f9f9; overflow-x: auto; padding: 20px;">
+            <div style="position: relative; height: 300px; border: 1px solid #ddd; background: #f9f9f9; overflow-x: auto; padding: 20px 0;">
                 <div id="desenhoEixoContainer" style="position: relative; height: 100%; width: ${larguraContainer}px; margin: 0 auto;">
     `;
 
-    // Desenhar o eixo (linha central)
+    // Linha central do eixo
     html += `
         <div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%);
                     width: 100%; height: 2px; background: #333; z-index: 1;"></div>
     `;
 
-    // Desenhar seções do eixo
-    dadosEixo.secoes.forEach((secao, index) => {
+    // Seções do eixo (Inalterado)
+    dadosEixo.secoes.forEach((secao) => {
         const largura = secao.comprimento * escala;
-        const altura = Math.min(secao.diametro * 2, 60); // Altura máxima de 60px
+        const altura = Math.max(10, Math.min(secao.diametro * 2, 80)); 
         const left = secao.posicaoInicio * escala;
         
         html += `
@@ -530,38 +547,52 @@ function gerarDesenhoEixo(resultados, dadosEixo) {
         `;
     });
 
-    // Marcar pontos importantes
+    // Pontos importantes (Mancais, Cargas, Mudanças)
     const reacoes = resultados.reacoes;
     resultados.todosPontos.forEach((ponto, index) => {
         const left = ponto.x * escala;
-        let cor, simbolo, titulo;
+        let cor, simbolo, titulo, tipoClasse;
         
         switch(ponto.tipo) {
             case 'mancal':
                 cor = '#dc3545';
                 simbolo = '⚙️';
+                tipoClasse = 'mancal';
                 const R_valor = ponto.x === reacoes.R1.x ? reacoes.R1.valor : (ponto.x === reacoes.R2.x ? reacoes.R2.valor : 0);
                 titulo = `Mancal - R: ${R_valor.toFixed(1)}N`;
                 break;
             case 'carga':
                 cor = '#ffc107';
                 simbolo = '📌';
+                tipoClasse = 'carga';
                 const carga = dadosEixo.carregamentos.find(c => c.x === ponto.x);
                 titulo = `Carga - F: ${carga ? carga.forca + 'N' : '0N'}, T: ${carga ? carga.torque + 'Nm' : '0Nm'}`;
+                // Desenha a seta para a carga
+                html += `
+                    <div style="position: absolute; left: ${left}px; top: 15%; transform: translateX(-50%); width: 2px; height: 30px; background: #ffc107; z-index: 5;"></div>
+                    <div style="position: absolute; left: ${left}px; top: 15%; transform: translate(-50%, -50%) rotate(45deg); width: 8px; height: 8px; border-bottom: 2px solid #ffc107; border-left: 2px solid #ffc107; z-index: 5;"></div>
+                `;
                 break;
             case 'mudanca':
                 cor = '#007bff';
                 simbolo = '📐';
+                tipoClasse = 'mudanca';
                 titulo = `Mudança - Ø${ponto.diametro_menor}/${ponto.diametro_maior}mm, M: ${ponto.momentoFletor.toFixed(1)}Nm`;
                 break;
+            default:
+                cor = '#6c757d'; // Cinza
+                simbolo = '⚫';
+                tipoClasse = 'outro';
+                titulo = ponto.tipo;
         }
-        
+
+        // --- ALTERAÇÃO: Adiciona a classe de DESELEÇÃO por padrão ---
         html += `
-            <div class="ponto-visual" data-posicao="${ponto.posicao}" data-index="${index}"
-                 style="position: absolute; left: ${left}px; top: 50%; transform: translate(-50%, -50%);
+            <div class="ponto-visual ${tipoClasse} ponto-deselecionado" data-posicao="${ponto.posicao}" data-index="${index}"
+                 style="position: absolute; left: ${left}px; top: 50%; transform: translate(-50%, -50%) scale(1);
                         width: 24px; height: 24px; background: ${cor}; border-radius: 50%; border: 2px solid white;
                         display: flex; align-items: center; justify-content: center; font-size: 12px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; z-index: 10;"
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; z-index: 10; transition: all 0.3s ease;"
                  title="${titulo}" onclick="selecionarPonto(${index})">
                 ${simbolo}
             </div>
@@ -570,74 +601,44 @@ function gerarDesenhoEixo(resultados, dadosEixo) {
         `;
     });
 
-    // Círculo de destaque (inicialmente invisível) - CORRIGIDO
+    // Fechamento e Legenda
     html += `
-            <div id="destaquePonto" 
-                 style="position: absolute; width: 32px; height: 32px; border: 3px solid #FFD700; 
-                        border-radius: 50%; background: transparent; z-index: 15; display: none;
-                        pointer-events: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-                        transform: translate(-50%, -50%); transition: all 0.3s ease;">
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                <strong>Legenda:</strong> 
+                <span style="color: #dc3545;">⚙️ Mancal</span> | 
+                <span style="color: #ffc107;">📌 Carga</span> | 
+                <span style="color: #007bff;">📐 Mudança</span> |
+                <span style="color: #FFD700;">🟡 Ponto Selecionado</span>
+            </div>
+            <div style="margin-top: 5px; font-size: 11px; color: #999;">
+                <strong>Escala:</strong> 1mm = ${escala.toFixed(3)}px | Total: ${dadosEixo.comprimentoTotal}mm
             </div>
         </div>
-    </div>
-    <div style="margin-top: 10px; font-size: 12px; color: #666;">
-        <strong>Legenda:</strong> 
-        <span style="color: #dc3545;">⚙️ Mancal</span> | 
-        <span style="color: #ffc107;">📌 Carga</span> | 
-        <span style="color: #007bff;">📐 Mudança</span> |
-        <span style="color: #FFD700;">🟡 Ponto Selecionado</span>
-    </div>
-    <div style="margin-top: 5px; font-size: 11px; color: #999;">
-        <strong>Escala:</strong> 1mm = ${escala.toFixed(3)}px | Total: ${dadosEixo.comprimentoTotal}mm
-    </div>
-</div>
     `;
 
     return html;
 }
 
-// --- Função atualizarDestaqueDesenho atualizada ---
+// --- Função atualizarDestaqueDesenho (MODIFICADA para gerenciar as classes) ---
 function atualizarDestaqueDesenho(indexSelecionado) {
-    const ponto = window.resultadosCalculos.todosPontos[indexSelecionado];
-    
-    // Calcular a mesma escala usada no desenho
-    const larguraContainer = 800;
-    const dadosEixo = window.resultadosCalculos.dadosEixo;
-    const escala = larguraContainer / dadosEixo.comprimentoTotal;
-    const left = ponto.x * escala;
-    
-    console.log(`Destaque: Ponto X=${ponto.posicao}mm -> left=${left}px (escala: ${escala})`);
-    
-    // Obter o elemento de destaque
-    const destaque = document.getElementById('destaquePonto');
-    
-    if (destaque) {
-        // Posicionar o círculo amarelo no ponto selecionado - CORRIGIDO
-        destaque.style.left = left + 'px';
-        destaque.style.top = '50%';
-        destaque.style.display = 'block';
-        
-        console.log(`✅ Destaque posicionado em left: ${left}px`);
-    } else {
-        console.error('❌ Elemento de destaque não encontrado!');
-    }
-    
-    // Também destacar o marcador visual correspondente
+    // 1. Remover destaque de TODOS os marcadores visuais
     const marcadores = document.querySelectorAll('.ponto-visual');
     marcadores.forEach(marcador => {
-        marcador.style.border = '2px solid white';
-        marcador.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        marcador.style.transform = 'translate(-50%, -50%) scale(1)';
+        // Remove seleção anterior, adiciona a classe de deselecionado (cinza)
+        marcador.classList.remove('ponto-selecionado');
+        marcador.classList.add('ponto-deselecionado');
     });
     
+    // 2. Adicionar destaque ao marcador visual selecionado
     const marcadorSelecionado = document.querySelector(`.ponto-visual[data-index="${indexSelecionado}"]`);
     if (marcadorSelecionado) {
-        marcadorSelecionado.style.border = '3px solid #FFD700';
-        marcadorSelecionado.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
-        marcadorSelecionado.style.transform = 'translate(-50%, -50%) scale(1.3)';
+        // Adiciona classe de seleção, remove deseleção (volta a cor)
+        marcadorSelecionado.classList.remove('ponto-deselecionado');
+        marcadorSelecionado.classList.add('ponto-selecionado');
     }
 }
-
 
 function iniciarAnaliseAvancada() {
     if (!window.pontoSelecionado) {
@@ -645,7 +646,6 @@ function iniciarAnaliseAvancada() {
         return;
     }
     
-    // Preparar dados para análise avançada
     const dadosAnaliseAvancada = {
         pontoSelecionado: window.pontoSelecionado,
         resultadosCalculos: window.resultadosCalculos,
@@ -654,15 +654,12 @@ function iniciarAnaliseAvancada() {
         tipoAnalise: 'fadiga'
     };
     
-    console.log('Dados salvos para análise avançada:', dadosAnaliseAvancada);
-    
-    // Salvar dados para a próxima etapa
+    // Salva o objeto de análise para ser puxado pela próxima página
     salvarDados({
         analiseAvancada: dadosAnaliseAvancada,
         analiseConcluida: true
     });
     
-    // Redirecionar para análise.html
     window.location.href = 'analise.html';
 }
 
