@@ -218,19 +218,68 @@ function calcularAnaliseAvancada() {
     }
 }
 
-function limparFormulario() {
-    document.getElementById('formAnaliseAvancada').reset();
-    document.getElementById('ciclosGroup').style.display = 'none';
-    // Restaurar valores padrão para confiabilidade e temperatura
-    document.getElementById('confiabilidade').value = '50';
-    document.getElementById('temperatura').value = '20';
-    document.getElementById('tipoCarga').value = 'flexao';
-}
-
+    function limparFormulario() {
+        console.log('Iniciando limpeza completa...');
+        
+        // 1. Salvar apenas os dados do formulário atual (se existirem)
+        const dadosAtuais = coletarDadosFormulario();
+        const dadosParaSalvar = {
+            dadosFormulario: dadosAtuais.dadosFormulario,
+            // Não salvar dados do desenho
+            dadosReferencia: {
+                pontoSelecionado: null,
+                analiseAvancada: null
+            }
+        };
+        
+        // 2. Limpar os campos do formulário
+        document.getElementById('formAnaliseAvancada').reset();
+        document.getElementById('ciclosGroup').style.display = 'none';
+        document.getElementById('acabamento').value = 'retificado';
+        document.getElementById('confiabilidade').value = '50';
+        document.getElementById('temperatura').value = '20';
+        document.getElementById('tipoCarga').value = 'flexao';
+        
+        // 3. LIMPAR COMPLETAMENTE os dados do desenho
+        pontoSelecionado = null;
+        dadosAnalise = null;
+        
+        // 4. Salvar apenas dados do formulário (sem dados do desenho)
+        localStorage.setItem('analise_avancada_results', JSON.stringify(dadosParaSalvar));
+        
+        // 5. Limpar a exibição das informações do ponto
+        const container = document.getElementById('infoPontoSelecionado');
+        if (container) {
+            container.innerHTML = '<p style="color: #666;">⚠️ Nenhum desenho carregado - digite os valores manualmente</p>';
+        }
+        
+        console.log('Limpeza completa realizada - dados do desenho removidos');
+    }
 function voltarParaResultados() {
     window.location.href = 'resultados.html';
 }
 
 function mostrarErro(mensagem) {
     alert('❌ ' + mensagem);
+}
+function realizarDimensionamento() {
+    // Coletar dados do formulário atual
+    const dados = coletarDadosFormulario();
+    const camposFaltantes = validarDados(dados);
+    
+    if (camposFaltantes.length > 0) {
+        alert(`⚠️ Preencha ${camposFaltantes.join(' e ')} para realizar o dimensionamento.`);
+        return;
+    }
+    
+    try {
+        // Salvar dados para uso na página de dimensionamento
+        localStorage.setItem('analise_avancada_results', JSON.stringify(dados));
+        
+        // Redirecionar para a página de dimensionamento
+        window.location.href = 'dimensionamento.html';
+    } catch (error) {
+        console.error('Erro ao salvar dados:', error);
+        mostrarErro('Erro ao salvar dados para dimensionamento.');
+    }
 }

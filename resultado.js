@@ -23,16 +23,40 @@ document.addEventListener('DOMContentLoaded', function() {
 function carregarDadosAnalise() {
     try {
         const dadosSalvos = localStorage.getItem('analise_avancada_results');
+        console.log('Dados salvos no localStorage:', dadosSalvos);
+        
         if (dadosSalvos) {
             const dados = JSON.parse(dadosSalvos);
-            if (dados.analiseAvancada) {
-                dadosAnalise = dados.analiseAvancada;
+            console.log('Dados parseados:', dados);
+            
+            // VERIFICAR OS DOIS FORMATOS POSSÍVEIS
+            if (dados.dadosFormulario) {
+                // NOVO FORMATO: dados do formulário atual
                 dadosFormulario = dados.dadosFormulario;
-                exibirInformacoesPonto();
-                executarCalculosCompletos();
+                dadosAnalise = dados.analiseAvancada || dados.dadosReferencia?.pontoSelecionado;
+                
+                console.log('Carregado no NOVO formato:', {
+                    dadosFormulario: dadosFormulario,
+                    dadosAnalise: dadosAnalise
+                });
+                
+            } else if (dados.analiseAvancada) {
+                // FORMATO ANTIGO: dados do desenho
+                dadosAnalise = dados.analiseAvancada;
+                // Criar dadosFormulario básico a partir dos dados disponíveis
+                dadosFormulario = criarDadosFormularioPadrao(dados);
+                
+                console.log('Carregado no formato ANTIGO:', {
+                    dadosFormulario: dadosFormulario,
+                    dadosAnalise: dadosAnalise
+                });
             } else {
-                mostrarErro('Dados de análise não encontrados.');
+                throw new Error('Formato de dados não reconhecido');
             }
+            
+            exibirInformacoesPonto();
+            executarCalculosCompletos();
+            
         } else {
             mostrarErro('Nenhum dado de análise encontrado no localStorage.');
         }
@@ -42,34 +66,86 @@ function carregarDadosAnalise() {
     }
 }
 
+// Função para criar dados padrão quando só temos dados do desenho
+function criarDadosFormularioPadrao(dados) {
+    return {
+        tipoMaterial: 'aco',
+        Sut: 500, // valor padrão
+        Sy: 400,  // valor padrão
+        vidaUtil: {
+            tipo: 'infinita',
+            ciclos: null
+        },
+        material: {
+            acabamento: 'usinado',
+            Sut: 500,
+            Sy: 400
+        },
+        confiabilidade: 50,
+        temperatura: 20,
+        tipoCarga: 'flexao',
+        geometricos: dados.analiseAvancada?.pontoSelecionado ? {
+            D: dados.analiseAvancada.pontoSelecionado.diametro_maior,
+            d: dados.analiseAvancada.pontoSelecionado.diametro_menor,
+            r: dados.analiseAvancada.pontoSelecionado.raio
+        } : {}
+    };
+}
+
 function exibirInformacoesPonto() {
     const container = document.getElementById('infoPontoAnalisado');
-    if (!dadosAnalise || !container) return;
+    if (!container) return;
 
-    const ponto = dadosAnalise.pontoSelecionado;
+    // Verificar diferentes formatos de dados
+    let ponto = null;
+    
+    if (dadosAnalise && dadosAnalise.pontoSelecionado) {
+        // Formato antigo: dados do desenho
+        ponto = dadosAnalise.pontoSelecionado;
+    } else if (dadosAnalise && dadosAnalise.posicao) {
+        // Formato novo: dados diretos
+        ponto = dadosAnalise;
+    } else if (dadosFormulario && dadosFormulario.geometricos) {
+        // Dados apenas do formulário
+        ponto = {
+            tipo: 'formulario',
+            posicao: 'N/A',
+            diametro_menor: dadosFormulario.geometricos.d,
+            diametro_maior: dadosFormulario.geometricos.D,
+            raio: dadosFormulario.geometricos.r,
+            momentoFletor: dadosFormulario.carregamentos?.momento || 0,
+            torque: dadosFormulario.carregamentos?.torque || 0
+        };
+    }
+
+    if (!ponto) {
+        container.innerHTML = '<p>⚠️ Dados do ponto não disponíveis</p>';
+        return;
+    }
     
     container.innerHTML = `
         <div class="info-item">
             <strong>Tipo:</strong> ${formatarTipo(ponto.tipo)}
         </div>
         <div class="info-item">
-            <strong>Posição:</strong> ${ponto.posicao} mm
+            <strong>Posição:</strong> ${ponto.posicao || 'N/A'} mm
         </div>
         <div class="info-item">
-            <strong>Diâmetro Menor (d):</strong> Ø${ponto.diametro_menor} mm
+            <strong>Diâmetro Menor (d):</strong> Ø${ponto.diametro_menor || 'N/A'} mm
         </div>
         <div class="info-item">
-            <strong>Diâmetro Maior (D):</strong> Ø${ponto.diametro_maior} mm
+            <strong>Diâmetro Maior (D):</strong> Ø${ponto.diametro_maior || 'N/A'} mm
         </div>
         <div class="info-item">
             <strong>Raio:</strong> ${ponto.raio || 'Não informado'} mm
         </div>
         <div class="info-item">
-            <strong>Momento Fletor:</strong> ${ponto.momentoFletor.toFixed(2)} Nm
+            <strong>Momento Fletor:</strong> ${(ponto.momentoFletor || 0).toFixed(2)} Nm
         </div>
         <div class="info-item">
-            <strong>Torque:</strong> ${ponto.torque.toFixed(0)} Nm
+            <strong>Torque:</strong> ${(ponto.torque || 0).toFixed(0)} Nm
         </div>
+        ${ponto.tipo === 'formulario' ? '<div class="info-item" style="color: #666;"><em>Dados inseridos manualmente</em></div>' : ''}
     `;
 }
 
@@ -77,32 +153,60 @@ function formatarTipo(tipo) {
     const tipos = {
         'mancal': '⚙️ Mancal',
         'carga': '📌 Carga',
-        'mudanca': '📐 Mudança de Diâmetro'
+        'mudanca': '📐 Mudança de Diâmetro',
+        'formulario': '📝 Dados Manuais'
     };
     return tipos[tipo] || tipo;
 }
 
 function executarCalculosCompletos() {
     try {
+        // Obter ponto para cálculo (suporta diferentes formatos)
+        let pontoCalculo = null;
+        
+        if (dadosAnalise && dadosAnalise.pontoSelecionado) {
+            pontoCalculo = dadosAnalise.pontoSelecionado;
+        } else if (dadosAnalise && dadosAnalise.posicao) {
+            pontoCalculo = dadosAnalise;
+        } else if (dadosFormulario && dadosFormulario.geometricos) {
+            // Criar ponto a partir dos dados do formulário
+            pontoCalculo = {
+                tipo: 'formulario',
+                posicao: 0,
+                diametro_menor: dadosFormulario.geometricos.d,
+                diametro_maior: dadosFormulario.geometricos.D,
+                raio: dadosFormulario.geometricos.r || 0.001,
+                momentoFletor: dadosFormulario.carregamentos?.momento || 0,
+                torque: dadosFormulario.carregamentos?.torque || 0
+            };
+        }
+
+        if (!pontoCalculo) {
+            throw new Error('Não foi possível obter dados para cálculo');
+        }
+
         // Configuração com dados do formulário
         const configuracao = {
             tipoMaterial: dadosFormulario?.tipoMaterial || 'aco',
-            Sut: dadosFormulario?.material?.Sut || 1515.8,
-            Sy: dadosFormulario?.material?.Sy || 1240.2,
+            Sut: dadosFormulario?.material?.Sut || dadosFormulario?.Sut || 500,
+            Sy: dadosFormulario?.material?.Sy || dadosFormulario?.Sy || 400,
             tipoAnalise: dadosFormulario?.vidaUtil?.tipo || 'infinita',
             ciclosDesejados: dadosFormulario?.vidaUtil?.ciclos || 1000000,
-            acabamento: dadosFormulario?.material?.acabamento || 'retificado',
+            acabamento: dadosFormulario?.material?.acabamento || 'usinado',
             confiabilidade: dadosFormulario?.confiabilidade || 50,
             temperatura: dadosFormulario?.temperatura || 20,
             tipoCarga: dadosFormulario?.tipoCarga || 'flexao',
             ambiente: 'normal'
         };
 
+        console.log('Configuração para cálculo:', configuracao);
+        console.log('Ponto para cálculo:', pontoCalculo);
+
         // Criar analisador
         const analisador = new AnalisadorFadiga(configuracao);
         
         // Executar análise
-        resultadosCalculados = analisador.executarAnaliseCompleta(dadosAnalise.pontoSelecionado);
+        resultadosCalculados = analisador.executarAnaliseCompleta(pontoCalculo);
         
         // Exibir resultados
         exibirResultadosCompletos(resultadosCalculados);
@@ -182,7 +286,7 @@ class AnalisadorFadiga {
         
         const D_d = D / d;
         const r_d = r / d;
-
+        console.log('DEBUG Kt - D:', D, 'd:', d, 'r:', r, 'D/d:', D_d, 'r/d:', r_d);
         const tabelaKt = [
             { D_d: 6.00, A: 0.87868, b: -0.33243 },
             { D_d: 3.00, A: 0.89334, b: -0.30860 },
@@ -222,53 +326,67 @@ class AnalisadorFadiga {
         return this.calcularKtGenerico(D_d, r_d, tabelaKts, "torção");
     }
 
-    calcularKtGenerico(D_d, r_d, tabela, tipo) {
-        tabela.sort((a, b) => b.D_d - a.D_d);
+calcularKtGenerico(D_d, r_d, tabela, tipo) {
+    console.log(`DEBUG ${tipo} - Iniciando cálculo: D/d=${D_d}, r/d=${r_d}`);
+    
+    tabela.sort((a, b) => b.D_d - a.D_d);
 
-        let pontoInferior = null;
-        let pontoSuperior = null;
+    let pontoInferior = null;
+    let pontoSuperior = null;
 
-        for (let i = 0; i < tabela.length - 1; i++) {
-            if (D_d >= tabela[i + 1].D_d && D_d <= tabela[i].D_d) {
-                pontoInferior = tabela[i + 1];
-                pontoSuperior = tabela[i];
-                break;
-            }
+    console.log(`DEBUG ${tipo} - Tabela:`, tabela.map(item => `D/d=${item.D_d}`).join(', '));
+
+    for (let i = 0; i < tabela.length - 1; i++) {
+        if (D_d >= tabela[i + 1].D_d && D_d <= tabela[i].D_d) {
+            pontoInferior = tabela[i + 1];
+            pontoSuperior = tabela[i];
+            console.log(`DEBUG ${tipo} - Encontrou pontos: inferior D/d=${pontoInferior.D_d}, superior D/d=${pontoSuperior.D_d}`);
+            break;
         }
-
-        if (!pontoInferior || !pontoSuperior) {
-            if (D_d >= tabela[0].D_d) {
-                pontoInferior = pontoSuperior = tabela[0];
-            } else if (D_d <= tabela[tabela.length - 1].D_d) {
-                pontoInferior = pontoSuperior = tabela[tabela.length - 1];
-            } else {
-                pontoInferior = tabela[tabela.length - 1];
-                pontoSuperior = tabela[0];
-            }
-        }
-
-        let A, b;
-        
-        if (pontoInferior.D_d === pontoSuperior.D_d) {
-            A = pontoInferior.A;
-            b = pontoInferior.b;
-        } else {
-            const fator = (D_d - pontoInferior.D_d) / (pontoSuperior.D_d - pontoInferior.D_d);
-            A = pontoInferior.A + fator * (pontoSuperior.A - pontoInferior.A);
-            b = pontoInferior.b + fator * (pontoSuperior.b - pontoInferior.b);
-        }
-
-        const Kt = A * Math.pow(r_d, b);
-
-        const limites = {
-            "flexão": { min: 1.0, max: 5.0 },
-            "torção": { min: 1.0, max: 4.0 }
-        };
-
-        const limite = limites[tipo] || { min: 1.0, max: 5.0 };
-        
-        return Math.max(limite.min, Math.min(limite.max, Kt));
     }
+
+    if (!pontoInferior || !pontoSuperior) {
+        if (D_d >= tabela[0].D_d) {
+            pontoInferior = pontoSuperior = tabela[0];
+            console.log(`DEBUG ${tipo} - Usando maior ponto: D/d=${pontoInferior.D_d}`);
+        } else if (D_d <= tabela[tabela.length - 1].D_d) {
+            pontoInferior = pontoSuperior = tabela[tabela.length - 1];
+            console.log(`DEBUG ${tipo} - Usando menor ponto: D/d=${pontoInferior.D_d}`);
+        } else {
+            pontoInferior = tabela[tabela.length - 1];
+            pontoSuperior = tabela[0];
+            console.log(`DEBUG ${tipo} - Usando extremos: inferior D/d=${pontoInferior.D_d}, superior D/d=${pontoSuperior.D_d}`);
+        }
+    }
+
+    let A, b;
+    
+    if (pontoInferior.D_d === pontoSuperior.D_d) {
+        A = pontoInferior.A;
+        b = pontoInferior.b;
+        console.log(`DEBUG ${tipo} - Ponto único: A=${A}, b=${b}`);
+    } else {
+        const fator = (D_d - pontoInferior.D_d) / (pontoSuperior.D_d - pontoInferior.D_d);
+        A = pontoInferior.A + fator * (pontoSuperior.A - pontoInferior.A);
+        b = pontoInferior.b + fator * (pontoSuperior.b - pontoInferior.b);
+        console.log(`DEBUG ${tipo} - Interpolação: fator=${fator}, A=${A}, b=${b}`);
+    }
+
+    const Kt = A * Math.pow(r_d, b);
+    console.log(`DEBUG ${tipo} - Kt calculado: ${Kt} = ${A} * (${r_d})^${b}`);
+
+    const limites = {
+        "flexão": { min: 1.0, max: 5.0 },
+        "torção": { min: 1.0, max: 4.0 }
+    };
+
+    const limite = limites[tipo] || { min: 1.0, max: 5.0 };
+    
+    const resultado = Math.max(limite.min, Math.min(limite.max, Kt));
+    console.log(`DEBUG ${tipo} - Kt final: ${resultado}`);
+    
+    return resultado;
+}
 
     // ========== CÁLCULO DO FATOR DE SENSIBILIDADE AO ENTALHE (q) ==========
 
