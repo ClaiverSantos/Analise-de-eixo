@@ -1,7 +1,7 @@
 /* Paleta Sugerida: Azul Marinho (#003366), Azul Claro (Bootstrap Primary: #0d6efd), Cinza/Claro (#f4f6f9) */
 
 body {
-    background-color: #f4f6f9; /* Fundo mais claro e suave */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #333;
 }
