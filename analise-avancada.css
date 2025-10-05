@@ -200,15 +200,19 @@ header p {
     padding-right: 60px;
 }
 
+/* --- BLOCO .form-acoes ATUALIZADO: 4 BOTÕES LADO A LADO --- */
 .form-acoes {
+    /* Mantenha o display flex, mas sem 'flex-wrap: wrap' para mantê-los na mesma linha */
     display: flex;
-    gap: 15px;
-    justify-content: center;
-    flex-wrap: wrap;
+    gap: 15px; /* Espaçamento entre os botões */
+    /* Remove justify-content: center para que os botões preencham toda a largura */
+    justify-content: space-between; 
+    flex-wrap: nowrap; /* Garante que não quebrem linha, se houver espaço */
     padding-top: 20px;
     border-top: 2px solid #e9ecef;
 }
 
+/* --- BLOCO button ATUALIZADO: Largura Igual para os 4 --- */
 button {
     padding: 12px 24px;
     border: none;
@@ -219,6 +223,31 @@ button {
     display: flex;
     align-items: center;
     gap: 8px;
+    
+    /* ESSENCIAL: Faz com que cada botão ocupe 1 parte igual do espaço disponível */
+    flex-grow: 1; /* Permite que o botão cresça para preencher o espaço */
+    flex-basis: 0; /* Define a largura base inicial como 0 para distribuição igual */
+    
+    /* Centraliza o texto dentro do botão */
+    justify-content: center;
+    
+    /* Garante a mesma aparência vertical */
+    height: auto; 
+    min-width: 100px; /* Adiciona uma largura mínima para telas muito pequenas */
+}
+
+/* --- AJUSTE RESPONSIVO (MUITO IMPORTANTE) --- */
+@media (max-width: 768px) {
+    .form-acoes {
+        /* Permite que os botões quebrem a linha em telas pequenas, um embaixo do outro, */
+        /* já que não haverá espaço para os 4 lado a lado. */
+        flex-direction: column; 
+    }
+
+    button {
+        width: 100%; /* Em telas pequenas, ocupa a largura total */
+        flex-basis: auto; /* Reseta o flex-basis */
+    }
 }
 
 .btn-calcular {
@@ -306,4 +335,49 @@ button {
 .input-group:has(#tipoCarga) {
     border-left: 3px solid #e67e22;
     padding-left: 10px;
+}
+/* ... (Seus estilos existentes) ... */
+
+/* Estilo para o título clicável */
+#toggleConfiguracoesAdicionais {
+    display: flex; /* Para alinhar o ícone e o texto */
+    justify-content: space-between; /* Espaço entre o texto e o ícone */
+    align-items: center;
+    padding-bottom: 5px; /* Um pequeno espaçamento inferior */
+    border-bottom: 1px solid #ddd; /* Linha sutil para destacar */
+    margin-bottom: 10px;
+    user-select: none; /* Não permite selecionar o texto do título */
+    color: #007bff; /* Destaca que é clicável */
+    transition: color 0.2s;
+}
+
+#toggleConfiguracoesAdicionais:hover {
+    color: #0056b3; /* Cor um pouco mais escura ao passar o mouse */
+}
+
+/* Classe para o conteúdo a ser ocultado/exibido */
+.configuracoes-adicionais-conteudo {
+    /* Por padrão, é melhor começar oculto no JavaScript para evitar "flash" de conteúdo */
+    /* Mas se quiser começar oculto no CSS (apenas certifique-se que o JS remova isso ao abrir): */
+    /* display: none; */ 
+    overflow: hidden; /* Garante que a transição de altura funcione */
+    transition: max-height 0.5s ease-out; /* Transição para abertura suave */
+    max-height: 0; /* Oculta suavemente */
+}
+
+/* Classe para mostrar o conteúdo */
+.configuracoes-adicionais-conteudo.aberto {
+    max-height: 500px; /* Um valor grande o suficiente para a altura do conteúdo */
+    transition: max-height 0.5s ease-in;
+}
+
+/* Estilo para o ícone de seta */
+#iconeConfiguracoesAdicionais {
+    font-size: 1.2em;
+    transition: transform 0.3s ease; /* Transição para rotação suave */
+}
+
+/* Rotação do ícone quando a seção estiver aberta */
+.configuracoes-adicionais-conteudo.aberto + #toggleConfiguracoesAdicionais #iconeConfiguracoesAdicionais {
+    transform: rotate(180deg);
 }

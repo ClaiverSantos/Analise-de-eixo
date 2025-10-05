@@ -48,6 +48,7 @@
 
             <form id="formAnaliseAvancada" class="form-analise">
                 <div class="form-colunas">
+                    
                     <div class="form-coluna">
                         <h4>📐 Dados Geométricos</h4>
                         
@@ -125,59 +126,65 @@
                             <span class="unidade">ciclos</span>
                         </div>
                     </div>
-
-                    <div class="form-coluna">
-                        <h4>➕ Configurações Adicionais</h4>
-                        
-                        <div class="input-group">
-                            <label for="confiabilidade">Confiabilidade (%):</label>
-                            <select id="confiabilidade">
-                                <option value="50">50%</option>
-                                <option value="90">90%</option>
-                                <option value="95">95%</option>
-                                <option value="99">99%</option>
-                                <option value="99.9">99.9%</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="temperatura">Temperatura de Operação (T):</label>
-                            <input type="number" id="temperatura" step="1" value="20" placeholder="Padrão 20">
-                            <span class="unidade">°C</span>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="tipoCarga">Tipo de Carregamento:</label>
-                            <select id="tipoCarga">
-                                <option value="flexao">Flexão</option>
-                                <option value="axial">Axial</option>
-                                <option value="normal">Normal</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="tipoMaterial">Tipo de Material:</label>
-                            <select id="tipoMaterial">
-                                <option value="aco">Aço</option>
-                                <option value="aluminio">Alumínio</option>
-                                <option value="outro">Outro (Ajuste manual de Se)</option>
-                            </select>
-                        </div>
-                    </div>
                 </div>
 
+                <div class="configuracoes-adicionais-secao">
+                    <h4 id="toggleConfiguracoesAdicionais" style="cursor: pointer;">
+                        ➕ Configurações Adicionais
+                        <span id="iconeConfiguracoesAdicionais">▼</span>
+                    </h4>
+                    
+                    <div id="conteudoConfiguracoesAdicionais" class="configuracoes-adicionais-conteudo">
+                        <div class="config-grid">
+                            <div class="input-group">
+                                <label for="confiabilidade">Confiabilidade (%):</label>
+                                <select id="confiabilidade">
+                                    <option value="50">50%</option>
+                                    <option value="90">90%</option>
+                                    <option value="95">95%</option>
+                                    <option value="99">99%</option>
+                                    <option value="99.9">99.9%</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="temperatura">Temperatura de Operação (T):</label>
+                                <input type="number" id="temperatura" step="1" value="20" placeholder="Padrão 20">
+                                <span class="unidade">°C</span>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="tipoCarga">Tipo de Carregamento:</label>
+                                <select id="tipoCarga">
+                                    <option value="flexao">Flexão</option>
+                                    <option value="axial">Axial</option>
+                                    <option value="normal">Normal</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="tipoMaterial">Tipo de Material:</label>
+                                <select id="tipoMaterial">
+                                    <option value="aco">Aço</option>
+                                    <option value="aluminio">Alumínio</option>
+                                    <option value="outro">Outro (Ajuste manual de Se)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
                 <div class="form-acoes">
-                    <button type="button" onclick="calcularAnaliseAvancada()" class="btn-calcular">
-                        🧮 Calcular Análise
-                    </button>
-                    <button type="button" onclick="realizarDimensionamento()" class="btn-dimensionamento">
-                        📐 Realizar Dimensionamento
-                    </button>
                     <button type="button" onclick="voltarParaResultados()" class="btn-voltar">
                         ↩️ Voltar aos Resultados
                     </button>
                     <button type="button" onclick="limparFormulario()" class="btn-limpar">
                         🗑️ Limpar
+                    </button>
+                    <button type="button" onclick="realizarDimensionamento()" class="btn-dimensionamento">
+                        📐 Realizar Dimensionamento
+                    </button>
+                    <button type="button" onclick="calcularAnaliseAvancada()" class="btn-calcular">
+                        🧮 Calcular Análise
                     </button>
                 </div>
             </form>

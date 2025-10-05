@@ -1,110 +1,216 @@
+/* Paleta Sugerida: Azul Marinho (#003366), Azul Claro (Bootstrap Primary: #0d6efd), Cinza/Claro (#f4f6f9) */
+
 body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9; /* Fundo mais claro e suave */
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
 }
 
-.card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border: none;
+/* --- Cabeçalho com Gradiente --- */
+.header-custom {
+    background: linear-gradient(90deg, #003366, #0077b6); /* Gradiente azul profissional */
     border-radius: 10px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.header-custom h1 {
+    font-weight: 700;
+}
+
+.header-custom p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* --- Estilo dos Cartões (Cards) --- */
+.card {
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Sombra mais destacada */
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-3px); /* Efeito sutil ao passar o mouse */
 }
 
 .card-header {
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: 12px 12px 0 0 !important;
     font-weight: 600;
-}
-
-.table th {
-    background-color: #e9ecef;
-    font-weight: 600;
-}
-
-.btn-lg {
-    padding: 12px 30px;
     font-size: 1.1rem;
-    margin: 0 5px;
-}
-
-.progress {
-    height: 25px;
-    border-radius: 12px;
-}
-
-.info-item {
-    padding: 5px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.info-item:last-child {
+    padding: 15px 20px;
+    color: white; /* Cor padrão do texto do header é branca */
     border-bottom: none;
 }
 
-.dimensionamento-selecionado {
-    background-color: #d1ecf1 !important;
-    border-left: 4px solid #17a2b8;
+/* --- Cores dos Card Headers (Bootstrap Overrides) --- */
+
+/* Informações do Ponto */
+.card-header.bg-info {
+    background-color: #0077b6 !important; /* Azul escuro */
 }
 
+/* Parâmetros (Warning) */
+.card-header.bg-warning {
+    background-color: #ff9900 !important; /* Laranja/Âmbar */
+    color: #333; /* Texto escuro no fundo claro */
+}
+
+/* Adicionar Novo (Success) */
+.card-header.bg-success {
+    background-color: #28a745 !important; /* Verde padrão */
+}
+
+/* Lista de Dimensionamentos (Secondary) */
+.card-header.bg-secondary {
+    background-color: #5a6268 !important; /* Cinza escuro */
+}
+
+/* Resultados (Primary) */
+.card-header.bg-primary {
+    background-color: #003366 !important; /* Azul Marinho Principal */
+}
+
+/* --- Estilo dos Formulários --- */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 10px 15px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0077b6;
+    box-shadow: 0 0 0 0.25rem rgba(0, 119, 182, 0.25);
+}
+
+/* --- Tabela --- */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.dimensionamento-selecionado {
+    background-color: #e6f7ff !important; /* Azul claro ao selecionar */
+    border-left: 5px solid #0077b6;
+}
+
+/* --- Botões de Ação Principal --- */
+.btn-lg {
+    padding: 14px 35px; /* Botões maiores e mais fáceis de clicar */
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.btn-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.btn-outline-primary {
+    color: #003366 !important;
+    border-color: #003366 !important;
+}
+
+.btn-secondary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+/* --- Estilos de Resultado --- */
 .resultado-sucesso {
     background-color: #d4edda;
     border: 1px solid #c3e6cb;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 10px 0;
-}
-
-.resultado-erro {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 10px 0;
-}
-
-.diametro-resultado {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #28a745;
-    margin: 5px 0;
-}
-
-.lista-vazia {
-    color: #6c757d;
-    font-style: italic;
-}
-
-.btn-acao {
-    padding: 4px 8px;
-    margin: 0 2px;
-}
-
-.resultado-item {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 10px;
-    background-color: #f8f9fa;
-}
-
-.resultado-item.selecionado {
-    background-color: #e7f3ff;
-    border-color: #007bff;
+    border-left: 5px solid #28a745;
 }
 
 .melhor-resultado {
-    background-color: #d4edda !important;
-    border: 2px solid #28a745 !important;
+    background-color: #cce5ff !important; /* Fundo azul claro para destaque */
+    border: 3px solid #0077b6 !important; /* Borda forte para o melhor */
     position: relative;
 }
 
 .melhor-resultado::before {
-    content: "🏆 MELHOR";
-    position: absolute;
-    top: -10px;
-    right: 10px;
-    background: #28a745;
+    content: "🏆 MELHOR RESULTADO";
+    background: #003366;
     color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
     font-weight: bold;
+    /* Ajuste de posicionamento */
+    top: -15px;
+    right: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+/* Estilos para os resultados */
+.resultado-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.resultado-item:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+}
+
+.melhor-resultado {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.resultado-erro {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.diametro-info, .fator-seguranca-info {
+    min-width: 150px;
+}
+
+/* Estilos para as tabelas nos modais */
+.modal-content table {
+    font-size: 0.9rem;
+}
+
+.modal-content table tr:last-child {
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Badge para melhor resultado */
+.badge.bg-warning {
+    font-size: 0.7rem;
+}
+
+/* Botão de detalhes */
+.btn-outline-primary {
+    border-width: 2px;
+    font-weight: 500;
 }

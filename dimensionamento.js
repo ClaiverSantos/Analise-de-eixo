@@ -979,6 +979,9 @@ function executarCalculosReais(dimensionamentos, metodo, Nf) {
 function exibirResultadosDimensionamento(resultadosCalculados, metodo, fatorSeguranca) {
     const resultados = document.getElementById('resultadosDimensionamento');
     
+    // Armazenar resultados globalmente para acesso nos modais
+    window.resultadosAtuais = resultadosCalculados;
+    
     // Filtrar resultados com erro
     const resultadosValidos = resultadosCalculados.filter(r => !r.erro);
     const resultadosComErro = resultadosCalculados.filter(r => r.erro);
@@ -987,8 +990,8 @@ function exibirResultadosDimensionamento(resultadosCalculados, metodo, fatorSegu
         <h4><i class="fas fa-chart-bar"></i> Resultados dos Dimensionamentos - ${metodo.toUpperCase()}</h4>
         <p class="text-muted">
             ${resultadosValidos.length} configuração(ões) analisada(s) | 
-            Fator de segurança alvo: ${fatorSeguranca} |
-            ${resultadosComErro.length > 0 ? `<span class="text-danger">${resultadosComErro.length} com erro</span>` : ''}
+            Fator de segurança alvo: ${fatorSeguranca}
+            ${resultadosComErro.length > 0 ? `| <span class="text-danger">${resultadosComErro.length} com erro</span>` : ''}
         </p>
     `;
 
@@ -1001,29 +1004,29 @@ function exibirResultadosDimensionamento(resultadosCalculados, metodo, fatorSegu
         
         html += `
             <div class="${classeResultado}">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>${resultado.dimensionamento.descricao}</h5>
-                        <div class="diametro-resultado">
-                            d = Ø${resultado.dimensionamento.d}mm | D = Ø${resultado.dimensionamento.D}mm | r = ${resultado.dimensionamento.r}mm
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="mb-1">${resultado.dimensionamento.descricao}</h5>
+                        <div class="d-flex gap-3 mt-2">
+                            <div class="diametro-info">
+                                <small class="text-muted">Diâmetro mínimo calculado:</small>
+                                <div class="fw-bold fs-5 text-primary">Ø${resultado.diametroMinimo.toFixed(2)} mm</div>
+                            </div>
+                            <div class="fator-seguranca-info">
+                                <small class="text-muted">Fator de segurança:</small>
+                                <div class="fw-bold fs-5 ${resultado.atendeRequisitos ? 'text-success' : 'text-danger'}">
+                                    ${resultado.fatorSeguranca.toFixed(2)}
+                                </div>
+                            </div>
                         </div>
-                        <div><strong>Relação D/d:</strong> ${resultado.dimensionamento.relacao}</div>
-                        <div><strong>Diâmetro mínimo calculado:</strong> Ø${resultado.diametroMinimo.toFixed(2)} mm</div>
-                        <div><strong>Diferença:</strong> <span class="${resultado.diferencaPercentual >= 0 ? 'text-success' : 'text-danger'}">${resultado.diferencaPercentual.toFixed(1)}%</span></div>
                     </div>
-                    <div class="col-md-6">
-                        <div><strong>Fator de Segurança:</strong> ${resultado.fatorSeguranca.toFixed(2)}</div>
-                        <div><strong>Status:</strong> 
-                            ${resultado.atendeRequisitos ? 
-                                '<span class="text-success">✓ Atende aos requisitos</span>' : 
-                                '<span class="text-danger">✖ Não atende</span>'}
-                        </div>
-                        <div><strong>Kf:</strong> ${resultado.fatoresConcentracao.Kf.toFixed(3)}</div>
-                        <div><strong>Kfs:</strong> ${resultado.fatoresConcentracao.Kfs.toFixed(3)}</div>
-                        <div><strong>Se:</strong> ${(resultado.limiteFadiga.Se / 1e6).toFixed(1)} MPa</div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-primary btn-sm" onclick="mostrarDetalhes(${index})">
+                            <i class="fas fa-search-plus"></i> Mais detalhes
+                        </button>
+                        ${isMelhor ? '<span class="badge bg-warning ms-2"><i class="fas fa-trophy"></i> Melhor</span>' : ''}
                     </div>
                 </div>
-                ${isMelhor ? '<div class="mt-2"><small class="text-success"><i class="fas fa-trophy"></i> Melhor configuração</small></div>' : ''}
             </div>
         `;
     });
@@ -1041,6 +1044,166 @@ function exibirResultadosDimensionamento(resultadosCalculados, metodo, fatorSegu
             </div>
         `;
     }
+
+    resultados.innerHTML = html;
+}
+
+function mostrarDetalhes(index) {
+    const resultado = window.resultadosAtuais[index];
+    if (!resultado) {
+        alert('Erro: Dados não encontrados');
+        return;
+    }
+
+    const statusClass = resultado.atendeRequisitos ? 'text-success' : 'text-danger';
+    const statusIcon = resultado.atendeRequisitos ? 'fa-check-circle' : 'fa-times-circle';
+    const statusText = resultado.atendeRequisitos ? 'Atende aos requisitos' : 'Não atende aos requisitos';
+
+    // Criar modal dinamicamente
+    const modalHTML = `
+        <div class="modal fade" id="modalDetalhes${index}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-info-circle"></i> Detalhes: ${resultado.dimensionamento.descricao}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Configuração Geométrica</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Diâmetro menor (d):</strong></td><td>${resultado.dimensionamento.d} mm</td></tr>
+                                    <tr><td><strong>Diâmetro maior (D):</strong></td><td>${resultado.dimensionamento.D} mm</td></tr>
+                                    <tr><td><strong>Raio (r):</strong></td><td>${resultado.dimensionamento.r} mm</td></tr>
+                                    <tr><td><strong>Relação D/d:</strong></td><td>${resultado.dimensionamento.relacao}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Resultados Principais</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Diâmetro mínimo:</strong></td><td>Ø${resultado.diametroMinimo.toFixed(2)} mm</td></tr>
+                                    <tr><td><strong>Fator de segurança:</strong></td><td class="${resultado.atendeRequisitos ? 'text-success' : 'text-danger'}">${resultado.fatorSeguranca.toFixed(2)}</td></tr>
+                                    <tr><td><strong>Status:</strong></td><td class="${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</td></tr>
+                                    <tr><td><strong>Diferença:</strong></td><td class="${resultado.diferencaPercentual >= 0 ? 'text-success' : 'text-danger'}">${resultado.diferencaPercentual.toFixed(1)}%</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <h6>Fatores de Concentração</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Kt (teórico):</strong></td><td>${resultado.fatoresConcentracao.Kt.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Kts (torção):</strong></td><td>${resultado.fatoresConcentracao.Kts.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Kf (fadiga):</strong></td><td>${resultado.fatoresConcentracao.Kf.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Kfs (torção fadiga):</strong></td><td>${resultado.fatoresConcentracao.Kfs.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Fator sensibilidade (q):</strong></td><td>${resultado.fatoresConcentracao.q.toFixed(3)}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Propriedades de Fadiga</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Limite de fadiga (Se):</strong></td><td>${(resultado.limiteFadiga.Se / 1e6).toFixed(1)} MPa</td></tr>
+                                    <tr><td><strong>Se' (limite base):</strong></td><td>${resultado.limiteFadiga.Se_prime.Se_prime_MPa.toFixed(1)} MPa</td></tr>
+                                    <tr><td><strong>Sut:</strong></td><td>${dadosAnalise.dadosFormulario.material.Sut} MPa</td></tr>
+                                    <tr><td><strong>Sy:</strong></td><td>${dadosAnalise.dadosFormulario.material.Sy} MPa</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Fatores de Correção</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Carga (Ccarg):</strong></td><td>${resultado.limiteFadiga.fatores.Ccarg.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Tamanho (Ctam):</strong></td><td>${resultado.limiteFadiga.fatores.Ctam.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Temperatura (Ctemp):</strong></td><td>${resultado.limiteFadiga.fatores.Ctemp.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Superfície (Csuperf):</strong></td><td>${resultado.limiteFadiga.fatores.Csuperf.toFixed(3)}</td></tr>
+                                    <tr><td><strong>Confiabilidade (Cconf):</strong></td><td>${resultado.limiteFadiga.fatores.Cconf.toFixed(3)}</td></tr>
+                                    <tr class="table-primary"><td><strong>Produto total:</strong></td><td>${resultado.limiteFadiga.fatores.produto.toFixed(3)}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        ${resultado.carregamentos ? `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Carregamentos Aplicados</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Momento fletor alternante (Ma):</strong></td><td>${resultado.carregamentos.Ma.toFixed(2)} N·m</td></tr>
+                                    <tr><td><strong>Momento fletor médio (Mm):</strong></td><td>${resultado.carregamentos.Mm.toFixed(2)} N·m</td></tr>
+                                    <tr><td><strong>Torque alternante (Ta):</strong></td><td>${resultado.carregamentos.Ta.toFixed(2)} N·m</td></tr>
+                                    <tr><td><strong>Torque médio (Tm):</strong></td><td>${resultado.carregamentos.Tm.toFixed(2)} N·m</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remover modal existente se houver
+    const modalExistente = document.getElementById(`modalDetalhes${index}`);
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    // Adicionar novo modal ao body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Mostrar modal usando Bootstrap se disponível, senão usar método alternativo
+    const modalElement = document.getElementById(`modalDetalhes${index}`);
+    
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        // Usar Bootstrap se disponível
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Método alternativo - mostrar modal manualmente
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.body.classList.add('modal-open');
+        
+        // Adicionar backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+        
+        // Configurar fechamento do modal
+        const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+                modalElement.remove();
+            });
+        });
+        
+        // Fechar ao clicar no backdrop
+        backdrop.addEventListener('click', function() {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            backdrop.remove();
+            modalElement.remove();
+        });
+    }
+
+    // Remover modal do DOM quando fechar
+    modalElement.addEventListener('hidden.bs.modal', function() {
+        modalElement.remove();
+    });
+}
 
     // Estatísticas resumidas
     const atendemRequisitos = resultadosValidos.filter(r => r.atendeRequisitos).length;
@@ -1060,7 +1223,7 @@ function exibirResultadosDimensionamento(resultadosCalculados, metodo, fatorSegu
     `;
 
     resultados.innerHTML = html;
-}
+
 
 function exportarResultados() {
     if (dimensionamentos.length === 0) {

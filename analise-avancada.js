@@ -92,6 +92,30 @@ function inicializarEventos() {
         document.getElementById('ciclosGroup').style.display = 
             this.value === 'finita' ? 'block' : 'none';
     });
+
+    // NOVO: Evento para mostrar/ocultar Configurações Adicionais
+    const toggle = document.getElementById('toggleConfiguracoesAdicionais');
+    const conteudo = document.getElementById('conteudoConfiguracoesAdicionais');
+    
+    // Inicia a seção de Configurações Adicionais oculta
+    // Usamos a classe CSS para a transição suave
+    // O conteúdo já está oculto no CSS com max-height: 0;
+
+    toggle.addEventListener('click', function() {
+        // Alterna a classe 'aberto'
+        conteudo.classList.toggle('aberto');
+
+        // Se o conteúdo estiver aberto, o ícone já é rotacionado pelo CSS.
+        // Se precisar de fallback (sem CSS de transição):
+        /*
+        const icone = document.getElementById('iconeConfiguracoesAdicionais');
+        if (conteudo.classList.contains('aberto')) {
+            icone.textContent = '▲'; 
+        } else {
+            icone.textContent = '▼';
+        }
+        */
+    });
 }
 
 function atualizarUnidades() {
