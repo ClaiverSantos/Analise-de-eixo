@@ -20,7 +20,7 @@ body {
 
 header {
     text-align: center;
-    background: white;
+    background: linear-gradient(90deg, #003366, #0077b6); 
     padding: 30px;
     border-radius: 15px;
     margin-bottom: 30px;
@@ -31,7 +31,7 @@ header h1 {
     color: #2c3e50;
     font-size: 2.5em;
     margin-bottom: 10px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #ffffff;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }

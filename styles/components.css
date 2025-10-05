@@ -22,6 +22,7 @@ body {
 
 header {
     text-align: center;
+    background: linear-gradient(90deg, #003366, #0077b6); 
     margin-bottom: 30px;
     padding-bottom: 20px;
     border-bottom: 2px solid #eee;
@@ -29,6 +30,7 @@ header {
 
 header h1 {
     color: #333;
+    background: #ffffff;
     margin-bottom: 10px;
     font-size: 2.2em;
 }
