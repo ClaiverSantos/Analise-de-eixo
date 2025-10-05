@@ -327,3 +327,103 @@ button {
         grid-template-columns: 1fr;
     }
 }
+/* Estilos para o botão de gerar gráfico */
+.btn-exportar {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 0 5px;
+    transition: background 0.3s;
+}
+
+.btn-exportar:hover {
+    background: #2980b9;
+}
+
+/* Área do diagrama */
+.area-diagrama {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.area-diagrama h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+/* resultado.css - Adicione estas classes */
+
+/* Cores modernas para o diagrama */
+:root {
+    --cor-goodman: #e74c3c;
+    --cor-escoamento: #f39c12;
+    --cor-operacao: #2980b9;
+    --cor-segura: #27ae60;
+    --cor-grid: #ecf0f1;
+    --cor-texto: #2c3e50;
+    --cor-destaque: #8e44ad;
+    --cor-alerta: #e67e22;
+}
+
+/* Botão pequeno para exportar */
+.btn-exportar-pequeno {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.3s;
+}
+
+.btn-exportar-pequeno:hover {
+    background: #2980b9;
+}
+
+/* Cabeçalho do diagrama */
+.cabecalho-diagrama {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.cabecalho-diagrama h3 {
+    margin: 0;
+    color: var(--cor-texto);
+}
+
+/* Container do diagrama */
+#containerDiagrama {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* Informações do diagrama */
+#infoDiagrama {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid var(--cor-operacao);
+}
+
+/* Estados do diagrama */
+.diagrama-seguro {
+    border-left-color: var(--cor-segura) !important;
+}
+
+.diagrama-critico {
+    border-left-color: var(--cor-alerta) !important;
+}

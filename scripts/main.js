@@ -80,13 +80,13 @@ function limparDados() {
 function iniciarAnaliseDesenho() {
     localStorage.setItem('modoAnalise', 'desenho');
     salvarDados({}); // Inicializa dados vazios
-    window.location.href = 'eixo.html';
+    window.location.href = 'pages/shaft-input.html'; 
 }
 
 function iniciarAnaliseDados() {
     localStorage.setItem('modoAnalise', 'dados');
     salvarDados({}); // Inicializa dados vazios
-    window.location.href = 'analise.html';
+     window.location.href = 'pages/advanced-analysis.html';
 }
 
 /**
@@ -118,7 +118,7 @@ window.continuarParaCalculos = function() {
         salvarDados(dadosDesenho);
         
         // 5. Redireciona
-        window.location.href = 'analise-eixo.html';
+        window.location.href = '../pages/shaft-analysis.html';
     } catch (error) {
         alert('Erro ao continuar: ' + error.message);
         console.error('Erro ao continuar para cálculos:', error);
@@ -126,11 +126,11 @@ window.continuarParaCalculos = function() {
 }
 
 function voltarParaMenu() {
-    window.location.href = 'index.html';
+    window.location.href = '..index.html';
 }
 
 function voltarParaDesenho() {
-    window.location.href = 'eixo.html';
+    window.location.href = '../pages/shaft-input.html';
 }
 
 // --- INICIALIZAÇÃO GLOBAL ---

@@ -235,7 +235,7 @@ function calcularAnaliseAvancada() {
     // Salvar dados no localStorage e redirecionar para resultado.html
     try {
         localStorage.setItem('analise_avancada_results', JSON.stringify(dados));
-        window.location.href = 'resultado.html';
+        window.location.href = '../pages/results.html';
     } catch (error) {
         console.error('Erro ao salvar dados:', error);
         mostrarErro('Erro ao salvar dados para análise.');
@@ -280,7 +280,7 @@ function calcularAnaliseAvancada() {
         console.log('Limpeza completa realizada - dados do desenho removidos');
     }
 function voltarParaResultados() {
-    window.location.href = 'resultados.html';
+    window.location.href = '../index.html';
 }
 
 function mostrarErro(mensagem) {
@@ -301,7 +301,7 @@ function realizarDimensionamento() {
         localStorage.setItem('analise_avancada_results', JSON.stringify(dados));
         
         // Redirecionar para a página de dimensionamento
-        window.location.href = 'dimensionamento.html';
+        window.location.href = '../pages/sizing.html';
     } catch (error) {
         console.error('Erro ao salvar dados:', error);
         mostrarErro('Erro ao salvar dados para dimensionamento.');

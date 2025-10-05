@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados da Análise de Fadiga</title>
+    <link rel="stylesheet" href="../styles/results.css">
+    <!-- Incluir bibliotecas para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Resultados da Análise de Fadiga</h1>
+            <p>Cálculos baseados na metodologia de fatores C</p>
+        </header>
+
+        <div class="painel-info">
+            <h3>📋 Dados do Ponto Analisado</h3>
+            <div id="infoPontoAnalisado" class="info-grid"></div>
+        </div>
+
+        <div class="resultados-container">
+            <div class="cabecalho-resultados">
+                <h2>🧮 Resultados dos Cálculos</h2>
+                <div class="controles-resultados">
+                    <!-- BOTÃO PARA GERAR GRÁFICO EM PDF -->
+                    <button onclick="geradorPDF.gerarPDFGrafico()" class="btn-exportar" id="btnGerarGrafico" style="display: none;">
+                        📊 Exportar Gráfico PDF
+                    </button>
+                    <button onclick="exportarResultados()" class="btn-exportar">📥 Exportar Resultados</button>
+                    <button onclick="voltarParaAnalise()" class="btn-voltar">↩️ Voltar à Análise</button>
+                </div>
+            </div>
+            
+            <div id="conteudoResultados" class="conteudo-resultados">
+                <div class="carregando">
+                    <div class="spinner"></div>
+                    <p>Calculando resultados...</p>
+                </div>
+            </div>
+
+            <!-- ÁREA PARA O DIAGRAMA DE FADIGA (AGORA VISÍVEL) -->
+            <div id="areaDiagrama" class="area-diagrama" style="display: none;">
+                <div class="cabecalho-diagrama">
+                    <h3>📈 Diagrama de Fadiga - Goodman Modificado</h3>
+                    <button onclick="geradorPDF.gerarPDFGrafico()" class="btn-exportar-pequeno">
+                        📊 Exportar PDF
+                    </button>
+                </div>
+                <div id="containerDiagrama"></div>
+                <div id="infoDiagrama"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal dos resultados -->
+    <script src="../scripts/results/results.js"></script>
+    <!-- Script específico para geração de PDF -->
+    <script src="../scripts/results/pdf-generator.js"></script>
+</body>
+</html>

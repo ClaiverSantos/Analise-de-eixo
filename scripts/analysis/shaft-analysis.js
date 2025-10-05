@@ -663,7 +663,7 @@ function iniciarAnaliseAvancada() {
         analiseConcluida: true
     });
     
-    window.location.href = 'analise.html';
+    window.location.href = '../pages/advanced-analysis.html';
 }
 
 function exportarResultados() {
@@ -672,12 +672,12 @@ function exportarResultados() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'analise-eixo.html';
+    a.download = '../pages/shaft-analisys.html';
     a.click();
 }
 
 function voltarParaDesenho() {
-    window.location.href = 'eixo.html';
+    window.location.href = '../pages/shaft-input.html';
 }
 
 // Inicializar quando a página carregar

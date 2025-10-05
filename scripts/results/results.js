@@ -811,6 +811,7 @@ function exibirResultadosCompletos(resultados) {
     `;
 
     container.innerHTML = html;
+    inicializarGeradorPDF(resultados);
 }
 
 function gerarRecomendacaoSeguranca(n) {
@@ -887,4 +888,20 @@ function mostrarErro(mensagem) {
             <button onclick="voltarParaAnalise()" class="btn-voltar">Voltar à Análise</button>
         </div>
     `;
+}
+function inicializarGeradorPDF(resultados) {
+    // Tornar os dados globais para o geradorPDF acessar
+    window.dadosParaPDF = {
+        resultados: resultados,
+        dadosFormulario: dadosFormulario,
+        dadosAnalise: dadosAnalise
+    };
+    
+    // Mostrar botão de gerar gráfico
+    document.getElementById('btnGerarGrafico').style.display = 'block';
+    
+    // Inicializar o gerador de PDF
+    if (window.geradorPDF) {
+        window.geradorPDF.inicializar(resultados, dadosFormulario, dadosAnalise);
+    }
 }
